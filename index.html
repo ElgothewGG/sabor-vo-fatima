@@ -338,6 +338,17 @@
     .modelo-card-del:active { color: #d9534f; }
     .modelos-empty-hint { font-size: .8rem; color: #aaa; text-align: center; padding: 8px 0 2px; line-height: 1.5; }
 
+    /* ── CUSTOM TOGGLE ── */
+    .custom-toggle-btn {
+      width: 100%; display: flex; justify-content: space-between; align-items: center;
+      background: #fff; border: 2px solid var(--cinza); border-radius: var(--radius);
+      padding: 14px 16px; font-size: .95rem; font-weight: 700; color: var(--marrom);
+      cursor: pointer; margin-bottom: 12px;
+      -webkit-tap-highlight-color: transparent;
+      transition: border-color .15s, background .15s;
+    }
+    .custom-toggle-btn:active { background: var(--creme); border-color: var(--terra); }
+
     /* ── CART BADGE on tab ── */
     .tab-badge {
       display: inline-block; background: var(--terra); color: #fff;
@@ -380,12 +391,16 @@
       </p>
     </div>
 
-    <!-- Montar customizado -->
-    <p class="sec-title">🍽️ Montar marmita</p>
-    <div id="montar-list"></div>
-    <div class="empty" id="montar-empty" style="display:none">
-      <span>🥣</span>Nenhum ingrediente cadastrado.<br>
-      Vá em <strong>Ingredientes</strong> para adicionar.
+    <!-- Montar customizado (colapsável) -->
+    <button id="custom-toggle" class="custom-toggle-btn" onclick="toggleCustom()">
+      🍽️ Montar marmita personalizada <span id="custom-toggle-arrow">▼</span>
+    </button>
+    <div id="custom-body">
+      <div id="montar-list"></div>
+      <div class="empty" id="montar-empty" style="display:none">
+        <span>🥣</span>Nenhum ingrediente cadastrado.<br>
+        Vá em <strong>Ingredientes</strong> para adicionar.
+      </div>
     </div>
   </div>
 
@@ -427,6 +442,17 @@
     <p class="sec-title">📋 Pedido do cliente</p>
     <div id="cart-list"></div>
     <div id="cart-order-total"></div>
+
+    <!-- Frete -->
+    <div id="frete-section" style="display:none;margin-bottom:10px">
+      <div class="card" style="padding:13px 15px">
+        <label style="font-weight:700;margin-bottom:6px">🚚 Frete de entrega (R$)</label>
+        <input type="number" id="frete-input" inputmode="decimal" step="0.01"
+               placeholder="0,00" oninput="updateFrete(this.value)" />
+        <p style="font-size:.73rem;color:#aaa;margin-top:4px">Deixe em branco para entrega sem frete</p>
+      </div>
+    </div>
+
     <div id="cart-actions" style="display:none">
       <button class="btn btn-primary btn-full" style="margin-bottom:10px" onclick="openResumoModal()">📄 Gerar Resumo do Pedido</button>
       <button class="btn btn-danger btn-full" onclick="limparPedido()">🗑️ Limpar Pedido</button>
@@ -599,6 +625,24 @@
     <div style="display:flex;gap:9px;margin-top:14px">
       <button class="btn btn-success btn-full" onclick="confirmarSalvar()">✅ Salvar</button>
       <button class="btn btn-outline" onclick="closeModal('modal-salvar')">✖</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: EDITAR CLIENTE ═══ -->
+<div class="modal-overlay" id="modal-edit-salva">
+  <div class="modal-box">
+    <div class="modal-title">✏️ Editar cliente</div>
+    <label>Nome do cliente</label>
+    <input type="text" id="edit-salva-nome" placeholder="Ex: Gabriel, Família Silva…" />
+    <label>Preço de venda (R$)</label>
+    <input type="number" id="edit-salva-preco" inputmode="decimal" step="0.01" placeholder="Ex: 28,00" />
+    <label>Quantidade de marmitas</label>
+    <input type="number" id="edit-salva-qtd" inputmode="numeric" min="1" value="1" placeholder="Ex: 10" />
+    <div style="display:flex;gap:9px;margin-top:14px">
+      <button class="btn btn-success btn-full" onclick="confirmarEditSalva()">💾 Atualizar</button>
+      <button class="btn btn-primary btn-full" onclick="adicionarSalvaAoPedido()">➕ Pedido</button>
+      <button class="btn btn-outline btn-sm" onclick="closeModal('modal-edit-salva')">✖</button>
     </div>
   </div>
 </div>
