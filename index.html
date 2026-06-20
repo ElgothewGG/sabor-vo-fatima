@@ -310,6 +310,34 @@
     }
     #toast.show { opacity: 1; }
 
+    /* ── MODELOS ── */
+    .modelos-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .modelos-scroll {
+      display: flex; gap: 10px; overflow-x: auto; padding-bottom: 8px;
+      scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch;
+    }
+    .modelos-scroll::-webkit-scrollbar { height: 4px; }
+    .modelos-scroll::-webkit-scrollbar-track { background: var(--cinza); border-radius: 4px; }
+    .modelos-scroll::-webkit-scrollbar-thumb { background: var(--terra); border-radius: 4px; }
+    .modelo-card {
+      flex-shrink: 0; scroll-snap-align: start;
+      background: #fff; border-radius: 12px; box-shadow: var(--shadow);
+      padding: 13px 13px 11px; width: 145px; cursor: pointer;
+      border: 2px solid transparent; transition: border-color .15s, transform .1s;
+      position: relative;
+    }
+    .modelo-card:active { transform: scale(.96); border-color: var(--terra); }
+    .modelo-card-nome  { font-weight: 800; font-size: .88rem; color: var(--marrom); margin-bottom: 6px; line-height: 1.3; padding-right: 18px; }
+    .modelo-card-preco { font-size: 1rem; font-weight: 800; color: var(--terra); }
+    .modelo-card-sub   { font-size: .7rem; color: #aaa; margin-top: 2px; }
+    .modelo-card-del   {
+      position: absolute; top: 6px; right: 6px;
+      background: none; border: none; font-size: .85rem; cursor: pointer;
+      color: #ccc; padding: 2px 4px; line-height: 1;
+    }
+    .modelo-card-del:active { color: #d9534f; }
+    .modelos-empty-hint { font-size: .8rem; color: #aaa; text-align: center; padding: 8px 0 2px; line-height: 1.5; }
+
     /* ── CART BADGE on tab ── */
     .tab-badge {
       display: inline-block; background: var(--terra); color: #fff;
@@ -340,7 +368,20 @@
 
   <!-- ═══ MONTAR ═══ -->
   <div id="screen-montar" class="screen active">
-    <p class="sec-title">Toque nos ingredientes que vai usar:</p>
+
+    <!-- Modelos prontos -->
+    <div id="modelos-section" style="margin-bottom:20px">
+      <div class="modelos-header">
+        <p class="sec-title" style="margin:0">⭐ Modelos prontos</p>
+      </div>
+      <div id="modelos-scroll" class="modelos-scroll"></div>
+      <p id="modelos-empty-hint" class="modelos-empty-hint" style="display:none">
+        Nenhum modelo salvo ainda.<br>Monte uma marmita, calcule e clique em <strong>📌 Salvar modelo</strong>.
+      </p>
+    </div>
+
+    <!-- Montar customizado -->
+    <p class="sec-title">🍽️ Montar marmita</p>
     <div id="montar-list"></div>
     <div class="empty" id="montar-empty" style="display:none">
       <span>🥣</span>Nenhum ingrediente cadastrado.<br>
@@ -541,10 +582,11 @@
       </button>
     </div>
 
-    <div style="display:flex;gap:8px;margin-top:4px">
-      <button class="btn btn-primary btn-full" onclick="closeModal('modal-margens')">✖ Fechar</button>
-      <button class="btn btn-outline" onclick="openSaveModal()">👥 Salvar cliente</button>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn btn-outline btn-full" onclick="openSaveModeloModal()">📌 Salvar modelo</button>
+      <button class="btn btn-outline btn-full" onclick="openSaveModal()">👥 Salvar cliente</button>
     </div>
+    <button class="btn btn-primary btn-full" style="margin-top:8px" onclick="closeModal('modal-margens')">✖ Fechar</button>
   </div>
 </div>
 
@@ -557,6 +599,20 @@
     <div style="display:flex;gap:9px;margin-top:14px">
       <button class="btn btn-success btn-full" onclick="confirmarSalvar()">✅ Salvar</button>
       <button class="btn btn-outline" onclick="closeModal('modal-salvar')">✖</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: SALVAR MODELO ═══ -->
+<div class="modal-overlay" id="modal-salvar-modelo">
+  <div class="modal-box">
+    <div class="modal-title">📌 Salvar modelo de marmita</div>
+    <label>Nome do modelo</label>
+    <input type="text" id="modelo-nome" placeholder="Ex: Marmita de Frango, Marmita Vegana…" />
+    <p style="font-size:.78rem;color:#888;margin-top:8px">O modelo salva os ingredientes e quantidades atuais. O preço é calculado automaticamente.</p>
+    <div style="display:flex;gap:9px;margin-top:14px">
+      <button class="btn btn-success btn-full" onclick="confirmarSalvarModelo()">⭐ Salvar modelo</button>
+      <button class="btn btn-outline" onclick="closeModal('modal-salvar-modelo')">✖</button>
     </div>
   </div>
 </div>
