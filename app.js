@@ -9,6 +9,7 @@ const LS_INGR    = 'vf_ingredientes';
 const LS_SALVAS  = 'vf_salvas';
 const LS_CART    = 'vf_cart';
 const LS_MODELOS = 'vf_modelos';
+const LS_FRETE   = 'vf_frete';
 
 // ════════════════════════════════════════════════════════════
 //  DEFAULT DATA
@@ -34,9 +35,11 @@ let ingredientes   = LS.get(LS_INGR)     || DEFAULT_INGR;
 let salvas         = LS.get(LS_SALVAS)   || [];
 let cart           = LS.get(LS_CART)     || [];
 let modelos        = LS.get(LS_MODELOS)  || [];
+let frete          = R(LS.get(LS_FRETE)) || 0;
 let selection      = {};
 let editingId      = null;
-let editingCartIdx = null;  // índice do item do carrinho sendo editado (null = novo item)
+let editingCartIdx = null;
+let editingSalvaId = null;
 
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
 function R(n)  { const x = parseFloat(n); return isNaN(x) ? 0 : x; }
@@ -143,6 +146,8 @@ function renderModelos() {
   if (!modelos.length) {
     scroll.innerHTML = '';
     hint.style.display = 'block';
+    // Sem modelos: expande a seção customizada automaticamente
+    setCustomOpen(true);
     return;
   }
   hint.style.display = 'none';
@@ -158,6 +163,23 @@ function renderModelos() {
       <div class="modelo-card-sub">60% margem · toque para usar</div>
     </div>`;
   }).join('');
+
+  // Com modelos: colapsa a seção customizada por padrão
+  setCustomOpen(false);
+}
+
+function setCustomOpen(open) {
+  const body  = document.getElementById('custom-body');
+  const arrow = document.getElementById('custom-toggle-arrow');
+  if (!body) return;
+  body.style.display  = open ? 'block' : 'none';
+  if (arrow) arrow.textContent = open ? '▲' : '▼';
+}
+
+function toggleCustom() {
+  const body = document.getElementById('custom-body');
+  if (!body) return;
+  setCustomOpen(body.style.display === 'none');
 }
 
 function usarModelo(id) {
@@ -168,6 +190,7 @@ function usarModelo(id) {
   selection = {};
   (m.ingrs || []).forEach(i => { selection[i.id] = { qtd: i.qtd }; });
 
+  setCustomOpen(true);   // mostra ingredientes carregados
   renderMontar();
   updatePriceBar();
 
@@ -559,7 +582,7 @@ function renderSalvas() {
       </div>
       <div class="saved-item-actions">
         <button class="btn btn-success btn-sm" onclick="calcularSalva('${s.id}')">📊 Calcular</button>
-        <button class="btn btn-outline btn-sm" onclick="reabrirMarmita('${s.id}')">🍽️ Montar</button>
+        <button class="btn btn-outline btn-sm" onclick="editSalva('${s.id}')">✏️ Editar</button>
         <button class="btn btn-danger btn-sm"  onclick="apagarSalva('${s.id}')">🗑️</button>
       </div>
     </div>`;
@@ -587,6 +610,63 @@ function calcularSalva(id) {
     openMargensModal();
   }, 120);
   showToast(`📊 Calculando marmita de ${s.nome}…`);
+}
+
+// ════════════════════════════════════════════════════════════
+//  CLIENTES — editar e adicionar ao pedido
+// ════════════════════════════════════════════════════════════
+function editSalva(id) {
+  const s = salvas.find(x => x.id === id);
+  if (!s) return;
+  editingSalvaId = id;
+  document.getElementById('edit-salva-nome').value  = s.nome;
+  document.getElementById('edit-salva-preco').value = s.precoVenda || '';
+  document.getElementById('edit-salva-qtd').value   = s.qtdPedido  || 1;
+  openModal('modal-edit-salva');
+}
+
+function confirmarEditSalva() {
+  const s = salvas.find(x => x.id === editingSalvaId);
+  if (!s) { closeModal('modal-edit-salva'); return; }
+  const nome  = document.getElementById('edit-salva-nome').value.trim();
+  const preco = R(document.getElementById('edit-salva-preco').value.replace(',','.'));
+  const qtd   = Math.max(1, parseInt(document.getElementById('edit-salva-qtd').value) || 1);
+  if (!nome || preco <= 0) { showToast('⚠️ Preencha nome e preço', '#d9534f'); return; }
+  s.nome       = nome;
+  s.precoVenda = preco;
+  s.qtdPedido  = qtd;
+  LS.set(LS_SALVAS, salvas);
+  closeModal('modal-edit-salva');
+  renderSalvas();
+  showToast(`✅ "${nome}" atualizado!`);
+}
+
+function adicionarSalvaAoPedido() {
+  const s = salvas.find(x => x.id === editingSalvaId);
+  if (!s) return;
+  const nome  = document.getElementById('edit-salva-nome').value.trim();
+  const preco = R(document.getElementById('edit-salva-preco').value.replace(',','.'));
+  const qtd   = Math.max(1, parseInt(document.getElementById('edit-salva-qtd').value) || 1);
+  if (!nome || preco <= 0) { showToast('⚠️ Preencha nome e preço', '#d9534f'); return; }
+
+  // ingrs no formato do carrinho (com id)
+  const ingrs = (s.itens || []).map(i => ({ id: i.id, nome: i.nome, qtd: i.qtd, unidade: i.unidade }));
+  const lucroUnit  = preco - (s.custo || 0);
+  const margemReal = preco > 0 ? (lucroUnit / preco) * 100 : 0;
+
+  cart.push({
+    id: uid(), nome, qtdMarmitas: qtd,
+    custoUnit: s.custo || 0,
+    precoUnit: preco,
+    lucroUnit, margemReal,
+    desconto: 0, taxa: 0, imposto: 0, margemAlvo: 60,
+    ingrs,
+    addedAt: new Date().toLocaleDateString('pt-BR')
+  });
+  LS.set(LS_CART, cart);
+  updateCartBadge();
+  closeModal('modal-edit-salva');
+  showToast(`✅ "${nome}" adicionada ao pedido!`);
 }
 
 function apagarSalva(id) {
@@ -701,6 +781,33 @@ function resetAddBtn() {
 }
 
 // ════════════════════════════════════════════════════════════
+//  FRETE
+// ════════════════════════════════════════════════════════════
+function updateFrete(val) {
+  frete = Math.max(0, R(String(val).replace(',','.')));
+  LS.set(LS_FRETE, frete);
+  updateOrderTotal();
+}
+
+function updateOrderTotal() {
+  const totBox = document.getElementById('cart-order-total');
+  if (!cart.length || !totBox) return;
+  const totalItems    = cart.reduce((s, i) => s + i.precoUnit  * i.qtdMarmitas, 0);
+  const totalLucro    = cart.reduce((s, i) => s + i.lucroUnit  * i.qtdMarmitas, 0);
+  const totalMarmitas = cart.reduce((s, i) => s + i.qtdMarmitas, 0);
+  const totalComFrete = totalItems + frete;
+
+  totBox.innerHTML = `
+  <div class="order-total">
+    <div class="ot-row"><span>Total de marmitas</span><span>${totalMarmitas} un.</span></div>
+    ${frete > 0 ? `<div class="ot-row"><span>Subtotal</span><span>R$ ${fmt(totalItems)}</span></div>
+    <div class="ot-row"><span>🚚 Frete</span><span>R$ ${fmt(frete)}</span></div>` : ''}
+    <div class="ot-row ot-lucro"><span>Lucro estimado</span><span>+R$ ${fmt(totalLucro)}</span></div>
+    <div class="ot-main"><span>TOTAL</span><span>R$ ${fmt(totalComFrete)}</span></div>
+  </div>`;
+}
+
+// ════════════════════════════════════════════════════════════
 //  PEDIDO — render carrinho
 // ════════════════════════════════════════════════════════════
 function renderPedido() {
@@ -709,12 +816,18 @@ function renderPedido() {
   const totBox = document.getElementById('cart-order-total');
   const actBox = document.getElementById('cart-actions');
 
+  const freteSection = document.getElementById('frete-section');
+  const freteInput   = document.getElementById('frete-input');
+
   if (!cart.length) {
     list.innerHTML = ''; totBox.innerHTML = '';
     empty.style.display = 'block'; actBox.style.display = 'none';
+    if (freteSection) freteSection.style.display = 'none';
     return;
   }
   empty.style.display = 'none'; actBox.style.display = 'block';
+  if (freteSection) freteSection.style.display = 'block';
+  if (freteInput && freteInput.value === '' && frete > 0) freteInput.value = frete;
 
   list.innerHTML = cart.map((item, idx) => {
     const totalCliente = item.precoUnit  * item.qtdMarmitas;
@@ -750,16 +863,7 @@ function renderPedido() {
     </div>`;
   }).join('');
 
-  const totalCliente  = cart.reduce((s, i) => s + i.precoUnit  * i.qtdMarmitas, 0);
-  const totalLucro    = cart.reduce((s, i) => s + i.lucroUnit  * i.qtdMarmitas, 0);
-  const totalMarmitas = cart.reduce((s, i) => s + i.qtdMarmitas, 0);
-
-  totBox.innerHTML = `
-  <div class="order-total">
-    <div class="ot-row"><span>Total de marmitas</span><span>${totalMarmitas} un.</span></div>
-    <div class="ot-row ot-lucro"><span>Lucro estimado</span><span>+R$ ${fmt(totalLucro)}</span></div>
-    <div class="ot-main"><span>Total do pedido</span><span>R$ ${fmt(totalCliente)}</span></div>
-  </div>`;
+  updateOrderTotal();
 }
 
 function removeCartItem(idx) {
@@ -792,31 +896,69 @@ function updateCartBadge() {
 // ════════════════════════════════════════════════════════════
 //  RESUMO DO PEDIDO
 // ════════════════════════════════════════════════════════════
+// Palavras-chave de embalagem — excluídas do resumo do cliente
+const EMBALAGEM = ['pote', 'rótulo', 'etiqueta', 'embalagem', 'tampa', 'saco', 'bandeja'];
+
+function isFoodItem(ingr) {
+  const n = (ingr.nome || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+  return !EMBALAGEM.some(kw => n.includes(kw.normalize('NFD').replace(/[̀-ͯ]/g,'')));
+}
+
+function formatIngredientQty(ingr) {
+  if (ingr.unidade === 'kg') return `${Math.round(ingr.qtd * 1000)}g`;
+  if (ingr.unidade === 'g')  return `${ingr.qtd}g`;
+  return `${ingr.qtd}`;
+}
+
 function openResumoModal() {
   if (!cart.length) { showToast('⚠️ Pedido está vazio', '#d9534f'); return; }
 
   const hoje = new Date().toLocaleDateString('pt-BR');
+  const div  = '─'.repeat(36);
   let txt = `🍱 ORÇAMENTO — Sabor da Vó Fátima\n`;
   txt    += `Data: ${hoje}\n`;
-  txt    += `${'─'.repeat(36)}\n\n`;
+  txt    += `${div}\n\n`;
 
-  let totalGeral = 0;
+  let subtotal = 0;
 
   cart.forEach(item => {
     const total = item.precoUnit * item.qtdMarmitas;
-    totalGeral += total;
+    subtotal   += total;
 
     txt += `🍱 ${item.nome}\n`;
+
+    // Ingredientes alimentícios (sem pote/etiqueta e sem preço)
+    const foodIngrs = (item.ingrs || []).filter(isFoodItem);
+    if (foodIngrs.length) {
+      const ingrStr = foodIngrs.map(i => `${i.nome} ${formatIngredientQty(i)}`).join(' · ');
+      txt += `   ${ingrStr}\n`;
+    }
+
     txt += `   ${item.qtdMarmitas} marmita${item.qtdMarmitas > 1 ? 's' : ''} × R$ ${fmt(item.precoUnit)} = R$ ${fmt(total)}\n`;
-    if (item.desconto > 0) txt += `   🏷️ Desconto de ${item.desconto}% já aplicado\n`;
+    if (item.desconto > 0) txt += `   🏷️ Desconto de ${item.desconto}% aplicado\n`;
     txt += `\n`;
   });
 
-  txt += `${'─'.repeat(36)}\n`;
-  txt += `TOTAL: R$ ${fmt(totalGeral)}\n`;
-  txt += `${'─'.repeat(36)}\n\n`;
+  txt += `${div}\n`;
+  if (frete > 0) {
+    txt += `Subtotal:  R$ ${fmt(subtotal)}\n`;
+    txt += `🚚 Frete:  R$ ${fmt(frete)}\n`;
+    txt += `${div}\n`;
+    txt += `TOTAL: R$ ${fmt(subtotal + frete)}\n`;
+  } else {
+    txt += `TOTAL: R$ ${fmt(subtotal)}\n`;
+  }
+  txt += `${div}\n\n`;
+
+  txt += `💳 FORMAS DE PAGAMENTO\n`;
+  txt += `✅ PIX — sem nenhum acréscimo\n`;
+  txt += `✅ Débito — sem nenhum acréscimo\n`;
+  txt += `💳 Crédito — com repasse da taxa operacional\n`;
+  txt += `   (confirmamos o valor exato no fechamento,\n`;
+  txt += `    sem surpresas!)\n\n`;
+
   txt += `Obrigada pela preferência! 🍱❤️\n`;
-  txt += `\nAguardando sua confirmação para envio do link de pagamento.`;
+  txt += `Aguardando sua confirmação para envio do link de pagamento.`;
 
   document.getElementById('resumo-texto').textContent = txt;
   openModal('modal-resumo');
