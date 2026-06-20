@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sabor da Vó Fátima</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#C1572A" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --terra:   #C1572A;
+      --terra-d: #a04620;
+      --creme:   #FFF8EE;
+      --marrom:  #5C3A21;
+      --verde:   #5B7B4F;
+      --verde-d: #486240;
+      --amarelo: #E8A33D;
+      --cinza:   #e0d5c8;
+      --shadow:  0 2px 8px rgba(92,58,33,.15);
+      --radius:  14px;
+    }
+
+    html, body {
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--creme);
+      color: var(--marrom);
+      font-size: 17px;
+      line-height: 1.5;
+    }
+
+    #app { max-width: 560px; margin: 0 auto; min-height: 100%; display: flex; flex-direction: column; }
+
+    /* ── HEADER ── */
+    header {
+      background: var(--terra); color: #fff;
+      padding: 16px 20px 12px; text-align: center;
+      position: sticky; top: 0; z-index: 100;
+      box-shadow: 0 2px 6px rgba(0,0,0,.2);
+    }
+    header h1 { font-size: 1.2rem; font-weight: 700; }
+    header p  { font-size: .78rem; opacity: .85; margin-top: 1px; }
+
+    /* ── NAV ── */
+    nav {
+      display: flex; background: #fff;
+      border-bottom: 2px solid var(--cinza);
+      position: sticky; top: 66px; z-index: 99;
+    }
+    nav button {
+      flex: 1; padding: 11px 4px;
+      border: none; background: transparent;
+      font-size: .8rem; font-weight: 600; color: #999;
+      cursor: pointer;
+      border-bottom: 3px solid transparent; margin-bottom: -2px;
+      transition: color .2s, border-color .2s;
+      -webkit-tap-highlight-color: transparent;
+      line-height: 1.3;
+    }
+    nav button.active  { color: var(--terra); border-bottom-color: var(--terra); }
+    nav button:active  { background: rgba(193,87,42,.07); }
+
+    /* ── SCREENS ── */
+    .screen { display: none; flex: 1; padding: 18px 15px 130px; }
+    .screen.active { display: block; }
+
+    /* ── CARDS & BTNS ── */
+    .card { background: #fff; border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px; margin-bottom: 12px; }
+
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      min-height: 50px; padding: 12px 18px;
+      border-radius: 12px; border: none;
+      font-size: .95rem; font-weight: 700; cursor: pointer;
+      transition: background .15s, transform .1s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn:active { transform: scale(.97); }
+    .btn-primary  { background: var(--terra); color: #fff; }
+    .btn-primary:hover { background: var(--terra-d); }
+    .btn-success  { background: var(--verde); color: #fff; }
+    .btn-success:hover { background: var(--verde-d); }
+    .btn-outline  { background: transparent; border: 2px solid var(--terra); color: var(--terra); }
+    .btn-danger   { background: #d9534f; color: #fff; }
+    .btn-sm       { min-height: 38px; padding: 8px 13px; font-size: .82rem; border-radius: 8px; }
+    .btn-full     { width: 100%; }
+
+    /* ── FORM ── */
+    label {
+      display: block; font-size: .84rem; font-weight: 700;
+      color: var(--marrom); margin-bottom: 5px; margin-top: 13px;
+    }
+    label:first-child { margin-top: 0; }
+    input[type="text"], input[type="number"], select {
+      width: 100%; padding: 12px 14px;
+      border: 2px solid var(--cinza); border-radius: 10px;
+      font-size: .95rem; color: var(--marrom);
+      background: #fafafa; outline: none;
+      transition: border-color .2s; -webkit-appearance: none;
+    }
+    input:focus, select:focus { border-color: var(--terra); background: #fff; }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+
+    /* ── SECTION TITLE ── */
+    .sec-title {
+      font-size: .95rem; font-weight: 700; color: var(--terra);
+      margin: 18px 0 10px;
+      display: flex; align-items: center; gap: 7px;
+    }
+    .sec-title:first-child { margin-top: 0; }
+
+    /* ── INGREDIENT CARDS ── */
+    .ingr-item {
+      display: flex; align-items: center; justify-content: space-between;
+      background: #fff; border-radius: 12px; box-shadow: var(--shadow);
+      padding: 13px 15px; margin-bottom: 10px;
+    }
+    .ingr-item-info  { flex: 1; min-width: 0; }
+    .ingr-item-name  { font-weight: 700; font-size: .95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ingr-item-price { font-size: .78rem; color: #888; margin-top: 2px; }
+    .ingr-item-actions { display: flex; gap: 8px; margin-left: 10px; }
+
+    /* ── MONTAR SELECTOR ── */
+    .sel-item {
+      display: flex; align-items: flex-start;
+      background: #fff; border-radius: 12px; box-shadow: var(--shadow);
+      padding: 12px 13px; margin-bottom: 10px;
+      border: 2px solid transparent; cursor: pointer;
+      transition: border-color .15s, background .15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .sel-item.selected { border-color: var(--terra); background: #fff4ee; }
+    .sel-item-check {
+      width: 26px; height: 26px; border-radius: 50%;
+      border: 2px solid var(--cinza);
+      display: flex; align-items: center; justify-content: center;
+      margin-right: 11px; margin-top: 2px; flex-shrink: 0;
+      font-size: .9rem; color: #fff;
+      transition: background .15s, border-color .15s;
+    }
+    .sel-item.selected .sel-item-check { background: var(--terra); border-color: var(--terra); }
+    .sel-item-body { flex: 1; min-width: 0; }
+    .sel-item-name { font-weight: 700; font-size: .95rem; }
+    .sel-item-sub  { font-size: .75rem; color: #888; }
+    .qty-row {
+      display: flex; align-items: center; gap: 8px;
+      margin-top: 9px; padding-top: 9px;
+      border-top: 1px solid var(--cinza);
+    }
+    .qty-row label  { margin: 0; font-size: .8rem; flex-shrink: 0; }
+    .qty-row input  { max-width: 100px; padding: 9px 10px; font-size: .9rem; }
+    .qty-row .qty-cost { font-size: .82rem; color: var(--verde); font-weight: 700; margin-left: auto; flex-shrink: 0; }
+
+    /* ── PRICE BAR ── */
+    #price-bar {
+      position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+      width: 100%; max-width: 560px;
+      background: var(--marrom); color: #fff;
+      padding: 10px 15px;
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      z-index: 200; box-shadow: 0 -3px 12px rgba(0,0,0,.25);
+    }
+    #price-bar .pb-left { flex: 1; min-width: 0; }
+    #price-bar .pb-label { font-size: .72rem; opacity: .7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #price-bar .pb-price { font-size: 1.45rem; font-weight: 800; color: var(--amarelo); }
+    #price-bar .pb-actions { display: flex; gap: 7px; flex-shrink: 0; }
+
+    /* ── MODAL ── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.55); z-index: 500;
+      align-items: flex-end; justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal-box {
+      background: var(--creme); border-radius: 20px 20px 0 0;
+      width: 100%; max-width: 560px; max-height: 92vh;
+      overflow-y: auto; padding: 22px 18px 34px;
+      animation: slideUp .25s ease;
+    }
+    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    .modal-title { font-size: 1.05rem; font-weight: 800; color: var(--terra); margin-bottom: 14px; text-align: center; }
+
+    /* ── MODAL SECTIONS ── */
+    .msec {
+      background: #fff; border-radius: 12px;
+      padding: 13px 14px; margin-bottom: 11px;
+      box-shadow: var(--shadow);
+    }
+    .msec-title { font-size: .8rem; font-weight: 800; color: var(--terra); margin-bottom: 9px; }
+
+    /* ── SLIDER ── */
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%; height: 8px; border-radius: 4px;
+      background: var(--cinza); outline: none; cursor: pointer;
+      border: none; padding: 0;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 28px; height: 28px; border-radius: 50%;
+      background: var(--terra); cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,.25);
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: var(--terra); cursor: pointer; border: none;
+    }
+    .slider-labels { display: flex; justify-content: space-between; font-size: .72rem; color: #aaa; margin-top: 4px; }
+    .slider-current {
+      font-size: 1.1rem; font-weight: 800; color: var(--terra);
+      text-align: center; margin-top: 4px;
+    }
+
+    /* ── RESULT CARD ── */
+    .result-card {
+      background: #fff; border-radius: 14px;
+      padding: 16px; margin-bottom: 12px;
+      box-shadow: var(--shadow); text-align: center;
+    }
+    .result-card .rc-meta { font-size: .78rem; color: #888; margin-bottom: 3px; }
+    .result-card .rc-big  { font-size: 2rem; font-weight: 800; color: var(--terra); line-height: 1.1; }
+    .result-card .rc-orig { font-size: .95rem; color: #bbb; text-decoration: line-through; }
+    .result-card .rc-disc { font-size: .82rem; background: var(--verde); color: #fff; font-weight: 700; padding: 2px 8px; border-radius: 20px; display: inline-block; margin-left: 6px; }
+    .result-card .rc-stats {
+      display: flex; justify-content: space-around;
+      margin-top: 13px; padding-top: 12px; border-top: 1px solid var(--cinza);
+    }
+    .result-card .rc-stat .v { font-weight: 800; font-size: 1rem; }
+    .result-card .rc-stat .l { font-size: .7rem; color: #888; margin-top: 1px; }
+    .result-card .rc-stat .v.green { color: var(--verde); }
+    .result-card .rc-qty-total {
+      background: var(--creme); border-radius: 10px; padding: 10px;
+      margin-top: 12px; font-size: .88rem; text-align: left;
+    }
+    .result-card .rc-qty-total strong { color: var(--marrom); }
+
+    /* ── MARGINS TABLE ── */
+    .margins-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+    .margins-table th, .margins-table td {
+      padding: 9px 10px; text-align: center;
+      border-bottom: 1px solid var(--cinza);
+    }
+    .margins-table th { font-weight: 700; color: var(--terra); }
+    .margins-table tr.hl { background: #fff7e0; }
+    .margins-table tr.hl td { font-weight: 700; }
+    .badge { background: var(--amarelo); color: var(--marrom); font-size: .62rem; font-weight: 800; padding: 2px 6px; border-radius: 20px; vertical-align: middle; margin-left: 3px; }
+
+    /* ── SAVED ── */
+    .saved-item { background: #fff; border-radius: var(--radius); box-shadow: var(--shadow); padding: 15px; margin-bottom: 11px; }
+    .saved-item-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+    .saved-item-name  { font-weight: 800; font-size: .95rem; }
+    .saved-item-date  { font-size: .75rem; color: #888; margin-top: 2px; }
+    .saved-item-price { font-size: 1.1rem; font-weight: 800; color: var(--terra); flex-shrink: 0; }
+    .saved-item-ingrs { font-size: .76rem; color: #888; margin-top: 5px; }
+    .saved-item-actions { display: flex; gap: 8px; margin-top: 11px; }
+
+    /* ── CART / PEDIDO ── */
+    .cart-item { background: #fff; border-radius: var(--radius); box-shadow: var(--shadow); padding: 15px; margin-bottom: 11px; }
+    .cart-item-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+    .cart-item-nome  { font-weight: 800; font-size: .95rem; }
+    .cart-item-total { font-size: 1.1rem; font-weight: 800; color: var(--terra); flex-shrink: 0; }
+    .cart-item-meta  { font-size: .78rem; color: #888; margin-top: 3px; }
+    .cart-item-lucro { font-size: .82rem; color: var(--verde); font-weight: 700; margin-top: 2px; }
+
+    .order-total {
+      background: var(--marrom); color: #fff;
+      border-radius: var(--radius); padding: 15px 18px; margin: 14px 0;
+    }
+    .ot-row  { display: flex; justify-content: space-between; font-size: .88rem; padding: 2px 0; opacity: .8; }
+    .ot-main { display: flex; justify-content: space-between; font-size: 1.15rem; font-weight: 800; padding-top: 10px; margin-top: 8px; border-top: 1px solid rgba(255,255,255,.25); }
+    .ot-lucro { color: var(--amarelo); }
+
+    /* ── RESUMO TEXT ── */
+    .resumo-box {
+      background: #1c1c1e; color: #e8e8e8;
+      border-radius: 12px; padding: 16px;
+      font-family: 'Courier New', monospace; font-size: .78rem; line-height: 1.8;
+      margin: 10px 0; white-space: pre-wrap; word-break: break-word;
+    }
+
+    /* ── INGR DETAIL SUMMARY ── */
+    details.ingr-detail > summary {
+      cursor: pointer; font-size: .82rem; color: #888;
+      list-style: none; display: flex; align-items: center; gap: 5px;
+      padding: 2px 0;
+    }
+    details.ingr-detail > summary::before { content: '▶'; font-size: .65rem; transition: transform .2s; }
+    details.ingr-detail[open] > summary::before { transform: rotate(90deg); }
+
+    /* ── COST SUMMARY ── */
+    .cs-row { display: flex; justify-content: space-between; font-size: .86rem; padding: 3px 0; }
+    .cs-total { font-weight: 800; font-size: .95rem; border-top: 2px solid var(--cinza); padding-top: 7px; margin-top: 5px; }
+
+    /* ── EMPTY ── */
+    .empty { text-align: center; padding: 36px 18px; color: #aaa; font-size: .9rem; }
+    .empty span { font-size: 2.8rem; display: block; margin-bottom: 8px; }
+
+    /* ── TOAST ── */
+    #toast {
+      position: fixed; bottom: 88px; left: 50%; transform: translateX(-50%);
+      background: var(--verde); color: #fff; padding: 11px 22px;
+      border-radius: 30px; font-weight: 700; font-size: .88rem;
+      z-index: 700; opacity: 0; pointer-events: none;
+      transition: opacity .3s; white-space: nowrap;
+    }
+    #toast.show { opacity: 1; }
+
+    /* ── CART BADGE on tab ── */
+    .tab-badge {
+      display: inline-block; background: var(--terra); color: #fff;
+      font-size: .6rem; font-weight: 800; padding: 1px 5px;
+      border-radius: 10px; margin-left: 3px; vertical-align: middle;
+    }
+
+    @media (max-width: 360px) {
+      header h1 { font-size: 1.05rem; }
+      nav button { font-size: .72rem; }
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <header>
+    <h1>🍱 Sabor da Vó Fátima</h1>
+    <p>Calculadora de Preços de Marmita</p>
+  </header>
+
+  <nav>
+    <button class="active" onclick="showScreen('montar',this)">🍽️<br>Montar</button>
+    <button onclick="showScreen('ingredientes',this)">🛒<br>Ingredientes</button>
+    <button onclick="showScreen('pedido',this)" id="tab-pedido">📋<br>Pedido</button>
+    <button onclick="showScreen('salvas',this)">👥<br>Clientes</button>
+  </nav>
+
+  <!-- ═══ MONTAR ═══ -->
+  <div id="screen-montar" class="screen active">
+    <p class="sec-title">Toque nos ingredientes que vai usar:</p>
+    <div id="montar-list"></div>
+    <div class="empty" id="montar-empty" style="display:none">
+      <span>🥣</span>Nenhum ingrediente cadastrado.<br>
+      Vá em <strong>Ingredientes</strong> para adicionar.
+    </div>
+  </div>
+
+  <!-- ═══ INGREDIENTES ═══ -->
+  <div id="screen-ingredientes" class="screen">
+    <div class="card" id="ingr-form-card">
+      <p style="font-weight:800;font-size:.95rem;margin-bottom:11px" id="ingr-form-title">➕ Adicionar ingrediente</p>
+      <label>Nome do ingrediente</label>
+      <input type="text" id="ingr-nome" placeholder="Ex: Frango, Arroz, Pote…" />
+      <label>Quanto pagou (R$)</label>
+      <input type="number" id="ingr-preco" placeholder="Ex: 17,00" min="0" step="0.01" inputmode="decimal" />
+      <div class="row2">
+        <div>
+          <label>Quantidade</label>
+          <input type="number" id="ingr-qtd" placeholder="Ex: 1" min="0" step="any" inputmode="decimal" />
+        </div>
+        <div>
+          <label>Unidade</label>
+          <select id="ingr-unidade">
+            <option value="kg">kg</option>
+            <option value="g">gramas (g)</option>
+            <option value="unidade">unidade</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:flex;gap:9px;margin-top:14px">
+        <button class="btn btn-primary btn-full" onclick="saveIngrediente()">✅ Salvar</button>
+        <button class="btn btn-outline btn-sm" id="ingr-cancel-btn" style="display:none" onclick="cancelEditIngrediente()">✖</button>
+      </div>
+    </div>
+
+    <p class="sec-title">Lista de ingredientes</p>
+    <div id="ingr-list"></div>
+    <div class="empty" id="ingr-empty" style="display:none"><span>🛒</span>Nenhum ingrediente ainda.</div>
+  </div>
+
+  <!-- ═══ PEDIDO (CARRINHO) ═══ -->
+  <div id="screen-pedido" class="screen">
+    <p class="sec-title">📋 Pedido do cliente</p>
+    <div id="cart-list"></div>
+    <div id="cart-order-total"></div>
+    <div id="cart-actions" style="display:none">
+      <button class="btn btn-primary btn-full" style="margin-bottom:10px" onclick="openResumoModal()">📄 Gerar Resumo do Pedido</button>
+      <button class="btn btn-danger btn-full" onclick="limparPedido()">🗑️ Limpar Pedido</button>
+    </div>
+    <div class="empty" id="cart-empty">
+      <span>🛒</span>Nenhuma marmita no pedido ainda.<br>Monte uma marmita e clique <strong>"Adicionar ao Pedido"</strong>.
+    </div>
+  </div>
+
+  <!-- ═══ CLIENTES ═══ -->
+  <div id="screen-salvas" class="screen">
+    <p class="sec-title">👥 Clientes cadastrados</p>
+    <div id="salvas-list"></div>
+    <div class="empty" id="salvas-empty" style="display:none">
+      <span>👥</span>Nenhum cliente cadastrado ainda.<br>
+      Monte uma marmita e clique em <strong>"💾 Salvar cliente"</strong>.
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<!-- ═══ PRICE BAR ═══ -->
+<div id="price-bar" style="display:none">
+  <div class="pb-left">
+    <div class="pb-label" id="pb-label">Preço sugerido (60% de margem)</div>
+    <div class="pb-price" id="pb-price-val">R$ 0,00</div>
+  </div>
+  <div class="pb-actions">
+    <button class="btn btn-outline btn-sm" style="color:#fff;border-color:rgba(255,255,255,.5)" onclick="openMargensModal()">📊 Calcular</button>
+    <button class="btn btn-success btn-sm" onclick="openSaveModal()">💾 Salvar cliente</button>
+  </div>
+</div>
+
+<!-- ═══ MODAL: SIMULADOR DE PREÇOS ═══ -->
+<div class="modal-overlay" id="modal-margens">
+  <div class="modal-box">
+    <div class="modal-title">📊 Simulador de Preços</div>
+
+    <!-- Custo dos ingredientes (colapsável) -->
+    <div class="msec">
+      <details class="ingr-detail">
+        <summary id="modal-custo-label">Custo dos ingredientes: R$ 0,00</summary>
+        <div id="modal-ingr-rows" style="margin-top:8px"></div>
+      </details>
+    </div>
+
+    <!-- Quantidade de marmitas -->
+    <div class="msec">
+      <div class="msec-title">🔢 Quantidade de marmitas deste tipo</div>
+      <div class="row2">
+        <div>
+          <label style="margin-top:0">Quantas marmitas?</label>
+          <input type="number" id="modal-qtd" value="1" min="1" step="1" inputmode="numeric"
+            oninput="updateModalCalc()" style="font-size:1.1rem;font-weight:700;text-align:center" />
+        </div>
+        <div>
+          <label style="margin-top:0">Margem desejada (%)</label>
+          <select id="modal-margem-alvo" onchange="updateModalCalc()" style="font-size:1.05rem;font-weight:700">
+            <option value="30">30%</option>
+            <option value="35">35%</option>
+            <option value="40">40%</option>
+            <option value="45">45%</option>
+            <option value="50">50%</option>
+            <option value="55">55%</option>
+            <option value="60" selected>60% ⭐</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Taxa e imposto -->
+    <div class="msec">
+      <div class="msec-title">💳 Taxas e impostos (opcional)</div>
+      <div class="row2">
+        <div>
+          <label style="margin-top:0">Taxa do cartão (%)</label>
+          <input type="number" id="modal-taxa" value="0" min="0" max="20" step="0.5" inputmode="decimal"
+            placeholder="Ex: 3" oninput="updateModalCalc()" />
+        </div>
+        <div>
+          <label style="margin-top:0">Imposto (%)</label>
+          <input type="number" id="modal-imposto" value="0" min="0" max="50" step="0.5" inputmode="decimal"
+            placeholder="Ex: 5" oninput="updateModalCalc()" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Desconto -->
+    <div class="msec">
+      <div class="msec-title">🏷️ Simular desconto</div>
+      <input type="range" id="modal-desconto" min="0" max="50" step="5" value="0"
+        oninput="updateModalCalc()" />
+      <div class="slider-labels"><span>0%</span><span>10%</span><span>20%</span><span>30%</span><span>40%</span><span>50%</span></div>
+      <div class="slider-current" id="modal-desconto-val">Sem desconto</div>
+    </div>
+
+    <!-- Resultado principal -->
+    <div class="result-card" id="modal-result-card">
+      <div class="rc-meta">Preço de venda (sem desconto)</div>
+      <div class="rc-big" id="rc-preco">R$ 0,00</div>
+
+      <!-- Bloco de desconto: só aparece quando desconto > 0 -->
+      <div id="rc-disc-section" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--cinza)">
+        <div class="rc-meta" style="margin-bottom:4px">
+          Com <strong id="rc-desc-pct">0%</strong> de desconto:
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;justify-content:center">
+          <span style="text-decoration:line-through;color:#bbb;font-size:1rem" id="rc-preco-orig-novo"></span>
+          <span style="font-size:1.6rem;font-weight:800;color:var(--verde)" id="rc-preco-com-desc">R$ 0,00</span>
+        </div>
+        <div style="font-size:.8rem;color:#888;margin-top:4px" id="rc-margem-com-desc"></div>
+      </div>
+
+      <div class="rc-stats">
+        <div class="rc-stat">
+          <div class="v green" id="rc-lucro-unit">R$ 0,00</div>
+          <div class="l" id="rc-lucro-label">Lucro / marmita</div>
+        </div>
+        <div class="rc-stat">
+          <div class="v" id="rc-margem-real">0%</div>
+          <div class="l">Margem</div>
+        </div>
+        <div class="rc-stat">
+          <div class="v" id="rc-custo-efetivo">R$ 0,00</div>
+          <div class="l">Custo total</div>
+        </div>
+      </div>
+      <div class="rc-qty-total" id="rc-qty-block" style="display:none">
+        <strong id="rc-qty-label"></strong><br>
+        <span id="rc-qty-total-txt" style="font-size:.82rem;color:#888"></span>
+      </div>
+    </div>
+
+    <!-- Tabela margens -->
+    <div class="msec" style="padding:10px 0 4px">
+      <div class="msec-title" style="padding:0 12px 6px">Comparativo de margens</div>
+      <table class="margins-table">
+        <thead><tr><th>Margem</th><th>Preço/un.</th><th>Lucro/un.</th></tr></thead>
+        <tbody id="modal-margens-body"></tbody>
+      </table>
+    </div>
+
+    <!-- Adicionar ao Pedido -->
+    <div class="msec">
+      <div class="msec-title">🛒 Adicionar ao Pedido do cliente</div>
+      <label style="margin-top:0">Nome do cliente / marmita</label>
+      <input type="text" id="modal-pedido-nome" placeholder="Ex: Marmita do Gabriel" />
+      <button id="btn-add-pedido" class="btn btn-success btn-full" style="margin-top:10px" onclick="addToPedido()">
+        ➕ Adicionar ao Pedido
+      </button>
+      <button id="btn-cancel-edit" class="btn btn-outline btn-full" style="margin-top:8px;display:none" onclick="cancelEditCart()">
+        ✖ Cancelar edição
+      </button>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button class="btn btn-primary btn-full" onclick="closeModal('modal-margens')">✖ Fechar</button>
+      <button class="btn btn-outline" onclick="openSaveModal()">👥 Salvar cliente</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: SALVAR CLIENTE ═══ -->
+<div class="modal-overlay" id="modal-salvar">
+  <div class="modal-box">
+    <div class="modal-title">👥 Salvar cliente</div>
+    <label>Nome do cliente</label>
+    <input type="text" id="salvar-nome" placeholder="Ex: Gabriel, Família Silva…" />
+    <div style="display:flex;gap:9px;margin-top:14px">
+      <button class="btn btn-success btn-full" onclick="confirmarSalvar()">✅ Salvar</button>
+      <button class="btn btn-outline" onclick="closeModal('modal-salvar')">✖</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: RESUMO DO PEDIDO ═══ -->
+<div class="modal-overlay" id="modal-resumo">
+  <div class="modal-box">
+    <div class="modal-title">📄 Resumo do Pedido</div>
+    <div class="resumo-box" id="resumo-texto"></div>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button class="btn btn-success btn-full" onclick="copiarResumo()">📋 Copiar</button>
+      <button class="btn btn-primary" onclick="closeModal('modal-resumo')">✖</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TOAST ═══ -->
+<div id="toast"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
