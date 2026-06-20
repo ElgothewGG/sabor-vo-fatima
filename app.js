@@ -5,9 +5,10 @@ const LS = {
   get: k    => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
   set: (k,v) => localStorage.setItem(k, JSON.stringify(v))
 };
-const LS_INGR   = 'vf_ingredientes';
-const LS_SALVAS = 'vf_salvas';
-const LS_CART   = 'vf_cart';
+const LS_INGR    = 'vf_ingredientes';
+const LS_SALVAS  = 'vf_salvas';
+const LS_CART    = 'vf_cart';
+const LS_MODELOS = 'vf_modelos';
 
 // ════════════════════════════════════════════════════════════
 //  DEFAULT DATA
@@ -29,9 +30,10 @@ const DEFAULT_INGR = [
 // ════════════════════════════════════════════════════════════
 //  STATE
 // ════════════════════════════════════════════════════════════
-let ingredientes   = LS.get(LS_INGR)   || DEFAULT_INGR;
-let salvas         = LS.get(LS_SALVAS) || [];
-let cart           = LS.get(LS_CART)   || [];
+let ingredientes   = LS.get(LS_INGR)     || DEFAULT_INGR;
+let salvas         = LS.get(LS_SALVAS)   || [];
+let cart           = LS.get(LS_CART)     || [];
+let modelos        = LS.get(LS_MODELOS)  || [];
 let selection      = {};
 let editingId      = null;
 let editingCartIdx = null;  // índice do item do carrinho sendo editado (null = novo item)
@@ -113,10 +115,106 @@ function showScreen(name, btn) {
   document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
   document.getElementById('screen-' + name).classList.add('active');
   if (btn) btn.classList.add('active');
-  if (name === 'montar')       { renderMontar(); updatePriceBar(); }
+  if (name === 'montar')       { renderModelos(); renderMontar(); updatePriceBar(); }
   if (name === 'ingredientes') renderIngredientes();
   if (name === 'pedido')       renderPedido();
   if (name === 'salvas')       renderSalvas();
+}
+
+// ════════════════════════════════════════════════════════════
+//  MODELOS DE MARMITA
+// ════════════════════════════════════════════════════════════
+
+// Custo real de um modelo com preços atuais dos ingredientes
+function custoModelo(m) {
+  let t = 0;
+  (m.ingrs || []).forEach(({ id, qtd }) => {
+    const ingr = ingredientes.find(i => i.id === id);
+    if (ingr && qtd) t += custoItem(ingr, qtd);
+  });
+  return t;
+}
+
+function renderModelos() {
+  const scroll = document.getElementById('modelos-scroll');
+  const hint   = document.getElementById('modelos-empty-hint');
+  if (!scroll) return;
+
+  if (!modelos.length) {
+    scroll.innerHTML = '';
+    hint.style.display = 'block';
+    return;
+  }
+  hint.style.display = 'none';
+
+  scroll.innerHTML = modelos.map(m => {
+    const custo = custoModelo(m);
+    const preco = calcPreco(custo, 60, 0, 0).precoBase;
+    return `
+    <div class="modelo-card" onclick="usarModelo('${m.id}')">
+      <button class="modelo-card-del" onclick="event.stopPropagation();apagarModelo('${m.id}')">🗑️</button>
+      <div class="modelo-card-nome">${m.nome}</div>
+      <div class="modelo-card-preco">R$ ${fmt(preco)}</div>
+      <div class="modelo-card-sub">60% margem · toque para usar</div>
+    </div>`;
+  }).join('');
+}
+
+function usarModelo(id) {
+  const m = modelos.find(x => x.id === id);
+  if (!m) return;
+
+  // Carrega ingredientes do modelo na seleção
+  selection = {};
+  (m.ingrs || []).forEach(i => { selection[i.id] = { qtd: i.qtd }; });
+
+  renderMontar();
+  updatePriceBar();
+
+  // Abre o calculador com o nome do modelo já preenchido
+  setTimeout(() => {
+    document.getElementById('modal-pedido-nome').value = m.nome;
+    openMargensModal();
+  }, 80);
+
+  showToast(`⭐ "${m.nome}" carregado!`);
+}
+
+function apagarModelo(id) {
+  if (!confirm('Apagar este modelo?')) return;
+  modelos = modelos.filter(m => m.id !== id);
+  LS.set(LS_MODELOS, modelos);
+  renderModelos();
+  showToast('🗑️ Modelo apagado');
+}
+
+function openSaveModeloModal() {
+  if (custoTotal() === 0) {
+    showToast('⚠️ Adicione ingredientes com quantidade', '#d9534f'); return;
+  }
+  document.getElementById('modelo-nome').value = '';
+  if (document.getElementById('modal-margens').classList.contains('open'))
+    closeModal('modal-margens');
+  openModal('modal-salvar-modelo');
+  setTimeout(() => document.getElementById('modelo-nome').focus(), 220);
+}
+
+function confirmarSalvarModelo() {
+  const nome = document.getElementById('modelo-nome').value.trim();
+  if (!nome) { showToast('⚠️ Digite um nome para o modelo', '#d9534f'); return; }
+
+  const ingrsSnap = Object.entries(selection)
+    .filter(([, s]) => s.qtd)
+    .map(([id, s]) => ({ id, qtd: s.qtd }));
+
+  modelos.unshift({
+    id: uid(), nome, ingrs: ingrsSnap,
+    criadoEm: new Date().toLocaleDateString('pt-BR')
+  });
+  LS.set(LS_MODELOS, modelos);
+  closeModal('modal-salvar-modelo');
+  renderModelos();
+  showToast(`⭐ Modelo "${nome}" salvo!`);
 }
 
 // ════════════════════════════════════════════════════════════
@@ -771,6 +869,7 @@ function fmt1(n) { return (isNaN(n) || !n ? 0 : n).toFixed(1).replace('.', ',');
 // ════════════════════════════════════════════════════════════
 //  INIT
 // ════════════════════════════════════════════════════════════
+renderModelos();
 renderMontar();
 updatePriceBar();
 updateCartBadge();
