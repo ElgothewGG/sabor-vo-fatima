@@ -1,4 +1,4 @@
-const CACHE = 'vofatima-v3';
+const CACHE = 'vofatima-v4';
 const ASSETS = ['./', './index.html', './app.js', './manifest.json'];
 
 self.addEventListener('install', e => {
