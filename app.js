@@ -1,15 +1,114 @@
 // ════════════════════════════════════════════════════════════
-//  STORAGE
+//  FIREBASE — CONFIGURAÇÃO E AUTH
 // ════════════════════════════════════════════════════════════
-const LS = {
-  get: k    => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
-  set: (k,v) => localStorage.setItem(k, JSON.stringify(v))
+const firebaseConfig = {
+  apiKey:            "AIzaSyCSBQaD2y4P9VmB1QwKBGDzk2gtUj5dL54",
+  authDomain:        "vofatima-23b27.firebaseapp.com",
+  projectId:         "vofatima-23b27",
+  storageBucket:     "vofatima-23b27.firebasestorage.app",
+  messagingSenderId: "200206195141",
+  appId:             "1:200206195141:web:fbe714c07209ca342993ac"
 };
-const LS_INGR    = 'vf_ingredientes';
-const LS_SALVAS  = 'vf_salvas';
-const LS_CART    = 'vf_cart';
-const LS_MODELOS = 'vf_modelos';
-const LS_FRETE   = 'vf_frete';
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db   = firebase.firestore();
+
+// Cache offline do Firestore (funciona mesmo sem internet)
+db.enablePersistence({ synchronizeTabs: false }).catch(() => {});
+
+let currentUser = null;
+
+function loginGoogle() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider).catch(err => {
+    showToast('Erro ao entrar: ' + err.message, '#d9534f');
+  });
+}
+
+function logout() {
+  if (!confirm('Sair do aplicativo?')) return;
+  auth.signOut();
+}
+
+auth.onAuthStateChanged(async user => {
+  const loginScreen  = document.getElementById('login-screen');
+  const headerUser   = document.getElementById('header-user');
+  const headerName   = document.getElementById('header-user-name');
+  if (user) {
+    currentUser = user;
+    loginScreen.style.display  = 'none';
+    headerUser.style.display   = 'flex';
+    headerName.textContent     = user.displayName || user.email;
+    await loadUserData(user.uid);
+  } else {
+    currentUser = null;
+    loginScreen.style.display = 'flex';
+    headerUser.style.display  = 'none';
+  }
+});
+
+async function loadUserData(uid) {
+  try {
+    const doc = await db.collection('usuarios').doc(uid).get();
+    if (doc.exists) {
+      const d = doc.data();
+      ingredientes = (d.ingredientes && d.ingredientes.length) ? d.ingredientes : DEFAULT_INGR;
+      salvas       = d.salvas   || [];
+      cart         = d.cart     || [];
+      modelos      = d.modelos  || [];
+      frete        = R(d.frete) || 0;
+    } else {
+      // Primeiro login — verifica se havia dados no localStorage para migrar
+      const lsIngr    = tryParse(localStorage.getItem('vf_ingredientes'));
+      const lsSalvas  = tryParse(localStorage.getItem('vf_salvas'));
+      const lsCart    = tryParse(localStorage.getItem('vf_cart'));
+      const lsModelos = tryParse(localStorage.getItem('vf_modelos'));
+      const lsFrete   = parseFloat(localStorage.getItem('vf_frete') || '0');
+      ingredientes = lsIngr   || DEFAULT_INGR;
+      salvas       = lsSalvas || [];
+      cart         = lsCart   || [];
+      modelos      = lsModelos || [];
+      frete        = lsFrete  || 0;
+      saveDB();
+      if (lsIngr) showToast('📦 Dados migrados para a nuvem!');
+    }
+  } catch (e) {
+    console.warn('Firestore indisponível, usando padrão:', e);
+    ingredientes = tryParse(localStorage.getItem('vf_ingredientes')) || DEFAULT_INGR;
+    salvas       = tryParse(localStorage.getItem('vf_salvas'))       || [];
+    cart         = tryParse(localStorage.getItem('vf_cart'))         || [];
+    modelos      = tryParse(localStorage.getItem('vf_modelos'))      || [];
+    frete        = parseFloat(localStorage.getItem('vf_frete') || '0');
+  }
+  renderModelos();
+  renderMontar();
+  updatePriceBar();
+  updateCartBadge();
+}
+
+let _saveTimer = null;
+function saveDB() {
+  if (!currentUser) return;
+  // Salva também em localStorage como backup offline
+  localStorage.setItem('vf_ingredientes', JSON.stringify(ingredientes));
+  localStorage.setItem('vf_salvas',       JSON.stringify(salvas));
+  localStorage.setItem('vf_cart',         JSON.stringify(cart));
+  localStorage.setItem('vf_modelos',      JSON.stringify(modelos));
+  localStorage.setItem('vf_frete',        String(frete));
+  // Debounce: agrupa múltiplas alterações seguidas em 1 escrita
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(() => {
+    db.collection('usuarios').doc(currentUser.uid).set({
+      ingredientes, salvas, cart, modelos, frete,
+      updatedAt: new Date().toISOString()
+    }).catch(console.error);
+  }, 800);
+}
+
+function tryParse(str) {
+  try { return JSON.parse(str); } catch { return null; }
+}
 
 // ════════════════════════════════════════════════════════════
 //  DEFAULT DATA
@@ -24,18 +123,18 @@ const DEFAULT_INGR = [
   { id: uid(), nome: 'Brócolis Congelado', preco: 11.9, qtd: 1,   unidade: 'kg' },
   { id: uid(), nome: 'Vagem',              preco: 12.9, qtd: 400, unidade: 'g'  },
   { id: uid(), nome: 'Cenoura',            preco: 7.5,  qtd: 500, unidade: 'g'  },
-  { id: uid(), nome: 'Pote',              preco: 167,  qtd: 144, unidade: 'unidade' },
-  { id: uid(), nome: 'Rótulo/Etiqueta',   preco: 85,   qtd: 300, unidade: 'unidade' },
+  { id: uid(), nome: 'Pote',               preco: 167,  qtd: 144, unidade: 'unidade' },
+  { id: uid(), nome: 'Rótulo/Etiqueta',    preco: 85,   qtd: 300, unidade: 'unidade' },
 ];
 
 // ════════════════════════════════════════════════════════════
-//  STATE
+//  STATE (preenchido por loadUserData)
 // ════════════════════════════════════════════════════════════
-let ingredientes   = LS.get(LS_INGR)     || DEFAULT_INGR;
-let salvas         = LS.get(LS_SALVAS)   || [];
-let cart           = LS.get(LS_CART)     || [];
-let modelos        = LS.get(LS_MODELOS)  || [];
-let frete          = R(LS.get(LS_FRETE)) || 0;
+let ingredientes   = [];
+let salvas         = [];
+let cart           = [];
+let modelos        = [];
+let frete          = 0;
 let selection      = {};
 let editingId      = null;
 let editingCartIdx = null;
@@ -68,23 +167,10 @@ function custoTotal() {
   return t;
 }
 
-/**
- * Calcula o preço de venda BASE (sem desconto) para uma margem alvo.
- *
- * custo_efetivo = custo_base × (1 + imposto/100)
- * precoBase     = custo_efetivo / ((1−M) × (1−taxa/100))
- * receita_liq   = precoBase × (1 − taxa/100)
- * lucro         = receita_liq − custo_efetivo
- * margemReal    ≈ M (confirmação)
- *
- * O desconto NÃO entra aqui — ele é aplicado SOBRE o precoBase depois.
- * Assim o preço normal não sobe para "compensar" o desconto.
- */
 function calcPreco(custo, margem, taxaCartao, imposto) {
   const M    = margem     / 100;
   const taxa = taxaCartao / 100;
   const imp  = imposto    / 100;
-
   const custoEfetivo = custo * (1 + imp);
   const denom        = (1 - M) * (1 - taxa);
   if (denom <= 0 || custo === 0) {
@@ -97,10 +183,6 @@ function calcPreco(custo, margem, taxaCartao, imposto) {
   return { precoBase, lucro, margemReal, custoEfetivo };
 }
 
-/**
- * Aplica desconto sobre o preço base e calcula o novo lucro/margem real.
- * Retorna null se desconto === 0.
- */
 function calcComDesconto(precoBase, desconto, taxaCartao, custoEfetivo) {
   if (desconto === 0) return null;
   const precoFinal = precoBase * (1 - desconto / 100);
@@ -127,8 +209,6 @@ function showScreen(name, btn) {
 // ════════════════════════════════════════════════════════════
 //  MODELOS DE MARMITA
 // ════════════════════════════════════════════════════════════
-
-// Custo real de um modelo com preços atuais dos ingredientes
 function custoModelo(m) {
   let t = 0;
   (m.ingrs || []).forEach(({ id, qtd }) => {
@@ -146,7 +226,6 @@ function renderModelos() {
   if (!modelos.length) {
     scroll.innerHTML = '';
     hint.style.display = 'block';
-    // Sem modelos: expande a seção customizada automaticamente
     setCustomOpen(true);
     return;
   }
@@ -164,7 +243,6 @@ function renderModelos() {
     </div>`;
   }).join('');
 
-  // Com modelos: colapsa a seção customizada por padrão
   setCustomOpen(false);
 }
 
@@ -185,28 +263,22 @@ function toggleCustom() {
 function usarModelo(id) {
   const m = modelos.find(x => x.id === id);
   if (!m) return;
-
-  // Carrega ingredientes do modelo na seleção
   selection = {};
   (m.ingrs || []).forEach(i => { selection[i.id] = { qtd: i.qtd }; });
-
-  setCustomOpen(true);   // mostra ingredientes carregados
+  setCustomOpen(true);
   renderMontar();
   updatePriceBar();
-
-  // Abre o calculador com o nome do modelo já preenchido
   setTimeout(() => {
     document.getElementById('modal-pedido-nome').value = m.nome;
     openMargensModal();
   }, 80);
-
   showToast(`⭐ "${m.nome}" carregado!`);
 }
 
 function apagarModelo(id) {
   if (!confirm('Apagar este modelo?')) return;
   modelos = modelos.filter(m => m.id !== id);
-  LS.set(LS_MODELOS, modelos);
+  saveDB();
   renderModelos();
   showToast('🗑️ Modelo apagado');
 }
@@ -225,16 +297,14 @@ function openSaveModeloModal() {
 function confirmarSalvarModelo() {
   const nome = document.getElementById('modelo-nome').value.trim();
   if (!nome) { showToast('⚠️ Digite um nome para o modelo', '#d9534f'); return; }
-
   const ingrsSnap = Object.entries(selection)
     .filter(([, s]) => s.qtd)
     .map(([id, s]) => ({ id, qtd: s.qtd }));
-
   modelos.unshift({
     id: uid(), nome, ingrs: ingrsSnap,
     criadoEm: new Date().toLocaleDateString('pt-BR')
   });
-  LS.set(LS_MODELOS, modelos);
+  saveDB();
   closeModal('modal-salvar-modelo');
   renderModelos();
   showToast(`⭐ Modelo "${nome}" salvo!`);
@@ -291,7 +361,7 @@ function saveIngrediente() {
   } else {
     ingredientes.push({ id: uid(), nome, preco, qtd, unidade });
   }
-  LS.set(LS_INGR, ingredientes);
+  saveDB();
   clearIngrForm();
   renderIngredientes();
   showToast('✅ Ingrediente salvo!');
@@ -323,7 +393,7 @@ function deleteIngrediente(id) {
   if (!confirm('Apagar este ingrediente?')) return;
   ingredientes = ingredientes.filter(i => i.id !== id);
   delete selection[id];
-  LS.set(LS_INGR, ingredientes);
+  saveDB();
   renderIngredientes();
   showToast('🗑️ Ingrediente apagado');
 }
@@ -403,7 +473,7 @@ function updatePriceBar() {
   const custo = custoTotal();
   if (custo === 0) {
     document.getElementById('pb-price-val').textContent = 'R$ 0,00';
-    document.getElementById('pb-label').textContent = 'Preço sugerido (60% de margem)';
+    document.getElementById('pb-label').textContent = 'Selecione ingredientes e quantidades';
     return;
   }
   const r = calcPreco(custo, 60, 0, 0);
@@ -412,12 +482,11 @@ function updatePriceBar() {
 }
 
 // ════════════════════════════════════════════════════════════
-//  MODAL MARGENS — abrir
+//  MODAL CALCULADORA — abrir
 // ════════════════════════════════════════════════════════════
 function openMargensModal() {
   const custo = custoTotal();
 
-  // resumo dos ingredientes
   const rows = Object.entries(selection)
     .filter(([, s]) => s.qtd)
     .map(([id, s]) => {
@@ -433,7 +502,6 @@ function openMargensModal() {
   document.getElementById('modal-custo-label').textContent =
     `Custo dos ingredientes: R$ ${fmt(custo)}`;
 
-  // pré-preenche nome da marmita
   if (!document.getElementById('modal-pedido-nome').value) {
     const preview = Object.entries(selection)
       .filter(([, s]) => s.qtd)
@@ -448,7 +516,7 @@ function openMargensModal() {
 }
 
 // ════════════════════════════════════════════════════════════
-//  MODAL MARGENS — atualização em tempo real
+//  MODAL CALCULADORA — atualização em tempo real
 // ════════════════════════════════════════════════════════════
 function updateModalCalc() {
   const custo      = custoTotal();
@@ -458,7 +526,6 @@ function updateModalCalc() {
   const desconto   = R(document.getElementById('modal-desconto').value);
   const margemAlvo = parseInt(document.getElementById('modal-margem-alvo').value) || 60;
 
-  // label do slider
   const dv = document.getElementById('modal-desconto-val');
   dv.textContent = desconto > 0 ? `${desconto}% de desconto sobre o preço normal` : 'Sem desconto';
   dv.style.color = desconto > 0 ? 'var(--verde)' : '#aaa';
@@ -473,7 +540,6 @@ function updateModalCalc() {
     return;
   }
 
-  // preço base (sem desconto)
   const r = calcPreco(custo, margemAlvo, taxa, imposto);
 
   document.getElementById('rc-preco').textContent         = 'R$ ' + fmt(r.precoBase);
@@ -482,7 +548,6 @@ function updateModalCalc() {
   document.getElementById('rc-custo-efetivo').textContent = 'R$ ' + fmt(r.custoEfetivo);
   document.getElementById('rc-lucro-label').textContent   = 'Lucro / marmita';
 
-  // desconto: mostra preço normal → preço com desconto (sem inflacionar)
   const disc = calcComDesconto(r.precoBase, desconto, taxa, r.custoEfetivo);
   if (disc) {
     document.getElementById('rc-disc-section').style.display  = 'block';
@@ -495,7 +560,6 @@ function updateModalCalc() {
     document.getElementById('rc-disc-section').style.display = 'none';
   }
 
-  // bloco de quantidade — usa o preço com desconto se houver
   const precoParaQtd = disc ? disc.precoFinal : r.precoBase;
   const lucroParaQtd = disc ? disc.lucro       : r.lucro;
   if (qtd > 1) {
@@ -508,7 +572,6 @@ function updateModalCalc() {
     document.getElementById('rc-qty-block').style.display = 'none';
   }
 
-  // tabela comparativa — sempre sem desconto (preços normais de referência)
   const margens = [30, 35, 40, 45, 50, 55, 60];
   document.getElementById('modal-margens-body').innerHTML = margens.map(m => {
     const ri = calcPreco(custo, m, taxa, imposto);
@@ -522,13 +585,75 @@ function updateModalCalc() {
 }
 
 // ════════════════════════════════════════════════════════════
-//  MODAL SALVAR MARMITA
+//  MODAL — copiar preço (sem salvar nada)
+// ════════════════════════════════════════════════════════════
+function copiarPreco() {
+  const custo = custoTotal();
+  if (custo === 0) { showToast('⚠️ Adicione ingredientes com quantidade', '#d9534f'); return; }
+
+  const taxa       = R(document.getElementById('modal-taxa').value);
+  const imposto    = R(document.getElementById('modal-imposto').value);
+  const desconto   = R(document.getElementById('modal-desconto').value);
+  const margemAlvo = parseInt(document.getElementById('modal-margem-alvo').value) || 60;
+  const qtd        = Math.max(1, parseInt(document.getElementById('modal-qtd').value) || 1);
+
+  const r    = calcPreco(custo, margemAlvo, taxa, imposto);
+  const disc = calcComDesconto(r.precoBase, desconto, taxa, r.custoEfetivo);
+  const precoFinal = disc ? disc.precoFinal : r.precoBase;
+
+  let txt = `Marmita — R$ ${fmt(precoFinal)}`;
+  if (qtd > 1) txt += `\n${qtd} marmitas — R$ ${fmt(precoFinal * qtd)}`;
+  if (desconto > 0) txt += `\n(com ${desconto}% de desconto)`;
+
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(txt).then(() => showToast('✅ Preço copiado!'));
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = txt; document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('✅ Preço copiado!');
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+//  MODAL — expansão "Cliente fechou"
+// ════════════════════════════════════════════════════════════
+function expandClienteFechou() {
+  const section = document.getElementById('cliente-fechou-section');
+  section.style.display = 'block';
+  document.getElementById('btn-cliente-fechou').textContent = '✅ Cliente confirmado ▲';
+  setTimeout(() => document.getElementById('modal-pedido-nome').focus(), 120);
+  // Scroll suave para a seção
+  setTimeout(() => section.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 150);
+}
+
+function toggleAjustes() {
+  const body  = document.getElementById('ajustes-body');
+  const arrow = document.getElementById('ajustes-arrow');
+  const open  = body.style.display !== 'none';
+  body.style.display  = open ? 'none' : 'block';
+  arrow.textContent   = open ? '▼' : '▲';
+}
+
+function fecharModal() {
+  // Reseta estados de expansão ao fechar
+  document.getElementById('cliente-fechou-section').style.display = 'none';
+  document.getElementById('btn-cliente-fechou').textContent = '✅ Cliente fechou';
+  closeModal('modal-margens');
+}
+
+// ════════════════════════════════════════════════════════════
+//  MODAL SALVAR CLIENTE (pela aba ou pelo botão no modal)
 // ════════════════════════════════════════════════════════════
 function openSaveModal() {
   if (custoTotal() === 0) {
     showToast('⚠️ Adicione ingredientes com quantidade', '#d9534f'); return;
   }
   document.getElementById('salvar-nome').value = '';
+  // Pré-preenche com o nome já digitado, se houver
+  const nomeAtual = document.getElementById('modal-pedido-nome').value.trim();
+  if (nomeAtual) document.getElementById('salvar-nome').value = nomeAtual;
   if (document.getElementById('modal-margens').classList.contains('open'))
     closeModal('modal-margens');
   openModal('modal-salvar');
@@ -546,19 +671,46 @@ function confirmarSalvar() {
       const ingr = ingredientes.find(i => i.id === id);
       return ingr ? { id, nome: ingr.nome, qtd: s.qtd, unidade: ingr.unidade } : null;
     }).filter(Boolean);
-
   salvas.unshift({
     id: uid(), nome,
     data: new Date().toLocaleDateString('pt-BR'),
     custo, precoVenda: pv, itens
   });
-  LS.set(LS_SALVAS, salvas);
+  saveDB();
   closeModal('modal-salvar');
-  showToast(`✅ "${nome}" salva!`);
+  showToast(`✅ "${nome}" salvo como cliente!`);
 }
 
 // ════════════════════════════════════════════════════════════
-//  SALVAS
+//  SALVAR CLIENTE + ADICIONAR AO PEDIDO (um clique só)
+// ════════════════════════════════════════════════════════════
+function salvarEAdicionarAoPedido() {
+  const nome = document.getElementById('modal-pedido-nome').value.trim();
+  if (!nome) { showToast('⚠️ Digite um nome primeiro', '#d9534f'); return; }
+  const custo = custoTotal();
+  if (custo === 0) { showToast('⚠️ Adicione ingredientes com quantidade', '#d9534f'); return; }
+
+  // Salva como cliente
+  const pv    = calcPreco(custo, 60, 0, 0).precoBase;
+  const itens = Object.entries(selection)
+    .filter(([, s]) => s.qtd)
+    .map(([id, s]) => {
+      const ingr = ingredientes.find(i => i.id === id);
+      return ingr ? { id, nome: ingr.nome, qtd: s.qtd, unidade: ingr.unidade } : null;
+    }).filter(Boolean);
+  salvas.unshift({
+    id: uid(), nome,
+    data: new Date().toLocaleDateString('pt-BR'),
+    custo, precoVenda: pv, itens
+  });
+
+  // Adiciona ao pedido
+  addToPedido(true); // true = pular fechar modal (já fecha no addToPedido)
+  showToast(`✅ "${nome}" salvo e adicionado ao pedido!`);
+}
+
+// ════════════════════════════════════════════════════════════
+//  CLIENTES — lista
 // ════════════════════════════════════════════════════════════
 function renderSalvas() {
   const list  = document.getElementById('salvas-list');
@@ -589,16 +741,6 @@ function renderSalvas() {
   }).join('');
 }
 
-function reabrirMarmita(id) {
-  const s = salvas.find(x => x.id === id);
-  if (!s) return;
-  selection = {};
-  s.itens.forEach(i => { selection[i.id] = { qtd: i.qtd }; });
-  showScreen('montar', document.querySelector('nav button'));
-  showToast(`🍽️ "${s.nome}" reaberta!`);
-}
-
-// Carrega ingredientes do cliente E abre o modal de cálculo direto
 function calcularSalva(id) {
   const s = salvas.find(x => x.id === id);
   if (!s) return;
@@ -635,7 +777,7 @@ function confirmarEditSalva() {
   s.nome       = nome;
   s.precoVenda = preco;
   s.qtdPedido  = qtd;
-  LS.set(LS_SALVAS, salvas);
+  saveDB();
   closeModal('modal-edit-salva');
   renderSalvas();
   showToast(`✅ "${nome}" atualizado!`);
@@ -648,12 +790,9 @@ function adicionarSalvaAoPedido() {
   const preco = R(document.getElementById('edit-salva-preco').value.replace(',','.'));
   const qtd   = Math.max(1, parseInt(document.getElementById('edit-salva-qtd').value) || 1);
   if (!nome || preco <= 0) { showToast('⚠️ Preencha nome e preço', '#d9534f'); return; }
-
-  // ingrs no formato do carrinho (com id)
-  const ingrs = (s.itens || []).map(i => ({ id: i.id, nome: i.nome, qtd: i.qtd, unidade: i.unidade }));
+  const ingrs      = (s.itens || []).map(i => ({ id: i.id, nome: i.nome, qtd: i.qtd, unidade: i.unidade }));
   const lucroUnit  = preco - (s.custo || 0);
   const margemReal = preco > 0 ? (lucroUnit / preco) * 100 : 0;
-
   cart.push({
     id: uid(), nome, qtdMarmitas: qtd,
     custoUnit: s.custo || 0,
@@ -663,24 +802,24 @@ function adicionarSalvaAoPedido() {
     ingrs,
     addedAt: new Date().toLocaleDateString('pt-BR')
   });
-  LS.set(LS_CART, cart);
+  saveDB();
   updateCartBadge();
   closeModal('modal-edit-salva');
   showToast(`✅ "${nome}" adicionada ao pedido!`);
 }
 
 function apagarSalva(id) {
-  if (!confirm('Apagar marmita salva?')) return;
+  if (!confirm('Apagar cliente?')) return;
   salvas = salvas.filter(s => s.id !== id);
-  LS.set(LS_SALVAS, salvas);
+  saveDB();
   renderSalvas();
-  showToast('🗑️ Apagada');
+  showToast('🗑️ Cliente apagado');
 }
 
 // ════════════════════════════════════════════════════════════
 //  PEDIDO — adicionar ao carrinho
 // ════════════════════════════════════════════════════════════
-function addToPedido() {
+function addToPedido(skipToast) {
   const nome = document.getElementById('modal-pedido-nome').value.trim();
   if (!nome) { showToast('⚠️ Digite um nome para a marmita', '#d9534f'); return; }
   const custo = custoTotal();
@@ -695,12 +834,10 @@ function addToPedido() {
   const r    = calcPreco(custo, margemAlvo, taxa, imposto);
   const disc = calcComDesconto(r.precoBase, desconto, taxa, r.custoEfetivo);
 
-  // precoUnit = preço que o cliente paga (com desconto se houver)
-  const precoUnit = disc ? disc.precoFinal : r.precoBase;
-  const lucroUnit = disc ? disc.lucro      : r.lucro;
+  const precoUnit  = disc ? disc.precoFinal : r.precoBase;
+  const lucroUnit  = disc ? disc.lucro      : r.lucro;
   const margemReal = disc ? disc.margemReal : r.margemReal;
 
-  // snapshot dos ingredientes (com id para permitir edição futura)
   const ingrsSnap = Object.entries(selection)
     .filter(([, s]) => s.qtd)
     .map(([id, s]) => {
@@ -722,15 +859,17 @@ function addToPedido() {
     cart[editingCartIdx] = novoItem;
     editingCartIdx = null;
     resetAddBtn();
-    showToast(`✅ "${nome}" atualizada no pedido!`);
+    if (!skipToast) showToast(`✅ "${nome}" atualizada no pedido!`);
   } else {
     cart.push(novoItem);
-    showToast(`✅ "${nome}" adicionada ao pedido!`);
+    if (!skipToast) showToast(`✅ "${nome}" adicionada ao pedido!`);
   }
 
-  LS.set(LS_CART, cart);
+  saveDB();
   updateCartBadge();
   document.getElementById('modal-pedido-nome').value = '';
+  document.getElementById('cliente-fechou-section').style.display = 'none';
+  document.getElementById('btn-cliente-fechou').textContent = '✅ Cliente fechou';
   closeModal('modal-margens');
 }
 
@@ -741,17 +880,13 @@ function editCartItem(idx) {
   const item = cart[idx];
   if (!item) return;
 
-  // Restaura a seleção de ingredientes do snapshot
   selection = {};
   (item.ingrs || []).forEach(i => { selection[i.id] = { qtd: i.qtd }; });
 
-  // Vai para a tela Montar com ingredientes carregados
   showScreen('montar', document.querySelector('nav button'));
-
   editingCartIdx = idx;
 
   setTimeout(() => {
-    // Pré-preenche campos do modal
     document.getElementById('modal-pedido-nome').value  = item.nome;
     document.getElementById('modal-qtd').value          = item.qtdMarmitas;
     document.getElementById('modal-taxa').value         = item.taxa    || 0;
@@ -759,17 +894,20 @@ function editCartItem(idx) {
     document.getElementById('modal-desconto').value     = item.desconto || 0;
     document.getElementById('modal-margem-alvo').value  = item.margemAlvo || 60;
 
-    // Muda botão para modo edição
-    document.getElementById('btn-add-pedido').textContent  = '💾 Salvar edição';
-    document.getElementById('btn-cancel-edit').style.display = 'block';
+    document.getElementById('btn-add-pedido').textContent       = '💾 Salvar edição';
+    document.getElementById('btn-cancel-edit').style.display    = 'block';
 
     openMargensModal();
+    // Auto-abre seção "Cliente fechou" para edição
+    expandClienteFechou();
   }, 120);
 }
 
 function cancelEditCart() {
   editingCartIdx = null;
   resetAddBtn();
+  document.getElementById('cliente-fechou-section').style.display = 'none';
+  document.getElementById('btn-cliente-fechou').textContent = '✅ Cliente fechou';
   closeModal('modal-margens');
 }
 
@@ -785,7 +923,7 @@ function resetAddBtn() {
 // ════════════════════════════════════════════════════════════
 function updateFrete(val) {
   frete = Math.max(0, R(String(val).replace(',','.')));
-  LS.set(LS_FRETE, frete);
+  saveDB();
   updateOrderTotal();
 }
 
@@ -811,11 +949,10 @@ function updateOrderTotal() {
 //  PEDIDO — render carrinho
 // ════════════════════════════════════════════════════════════
 function renderPedido() {
-  const list   = document.getElementById('cart-list');
-  const empty  = document.getElementById('cart-empty');
-  const totBox = document.getElementById('cart-order-total');
-  const actBox = document.getElementById('cart-actions');
-
+  const list         = document.getElementById('cart-list');
+  const empty        = document.getElementById('cart-empty');
+  const totBox       = document.getElementById('cart-order-total');
+  const actBox       = document.getElementById('cart-actions');
   const freteSection = document.getElementById('frete-section');
   const freteInput   = document.getElementById('frete-input');
 
@@ -869,7 +1006,7 @@ function renderPedido() {
 function removeCartItem(idx) {
   if (!confirm('Remover este item?')) return;
   cart.splice(idx, 1);
-  LS.set(LS_CART, cart);
+  saveDB();
   updateCartBadge();
   renderPedido();
   showToast('🗑️ Item removido');
@@ -878,7 +1015,7 @@ function removeCartItem(idx) {
 function limparPedido() {
   if (!confirm('Limpar todo o pedido?')) return;
   cart = [];
-  LS.set(LS_CART, cart);
+  saveDB();
   updateCartBadge();
   renderPedido();
   showToast('🗑️ Pedido limpo');
@@ -889,19 +1026,18 @@ function updateCartBadge() {
   const n   = cart.length;
   const old = tab.querySelector('.tab-badge');
   if (old) old.remove();
-  if (n > 0) tab.innerHTML = `📋<span class="tab-badge">${n}</span><br>Pedido`;
-  else        tab.innerHTML = `📋<br>Pedido`;
+  if (n > 0) tab.innerHTML = `📋<span class="tab-badge">${n}</span><br>Pedidos`;
+  else        tab.innerHTML = `📋<br>Pedidos`;
 }
 
 // ════════════════════════════════════════════════════════════
 //  RESUMO DO PEDIDO
 // ════════════════════════════════════════════════════════════
-// Palavras-chave de embalagem — excluídas do resumo do cliente
-const EMBALAGEM = ['pote', 'rótulo', 'etiqueta', 'embalagem', 'tampa', 'saco', 'bandeja'];
+const EMAALACCEM = ['pote', 'rotulo', 'etiqueta', 'embalagem', 'tampa', 'saco', 'bandeja'];
 
 function isFoodItem(ingr) {
-  const n = (ingr.nome || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
-  return !EMBALAGEM.some(kw => n.includes(kw.normalize('NFD').replace(/[̀-ͯ]/g,'')));
+  const n = (ingr.nome || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  return !EMBALAGEM.some(kw => n.includes(kw));
 }
 
 function formatIngredientQty(ingr) {
@@ -924,16 +1060,12 @@ function openResumoModal() {
   cart.forEach(item => {
     const total = item.precoUnit * item.qtdMarmitas;
     subtotal   += total;
-
     txt += `🍱 ${item.nome}\n`;
-
-    // Ingredientes alimentícios (sem pote/etiqueta e sem preço)
     const foodIngrs = (item.ingrs || []).filter(isFoodItem);
     if (foodIngrs.length) {
       const ingrStr = foodIngrs.map(i => `${i.nome} ${formatIngredientQty(i)}`).join(' · ');
       txt += `   ${ingrStr}\n`;
     }
-
     txt += `   ${item.qtdMarmitas} marmita${item.qtdMarmitas > 1 ? 's' : ''} × R$ ${fmt(item.precoUnit)} = R$ ${fmt(total)}\n`;
     if (item.desconto > 0) txt += `   🏷️ Desconto de ${item.desconto}% aplicado\n`;
     txt += `\n`;
@@ -949,14 +1081,12 @@ function openResumoModal() {
     txt += `TOTAL: R$ ${fmt(subtotal)}\n`;
   }
   txt += `${div}\n\n`;
-
   txt += `💳 FORMAS DE PAGAMENTO\n`;
   txt += `✅ PIX — sem nenhum acréscimo\n`;
   txt += `✅ Débito — sem nenhum acréscimo\n`;
   txt += `💳 Crédito — com repasse da taxa operacional\n`;
   txt += `   (confirmamos o valor exato no fechamento,\n`;
   txt += `    sem surpresas!)\n\n`;
-
   txt += `Obrigada pela preferência! 🍱❤️\n`;
   txt += `Aguardando sua confirmação para envio do link de pagamento.`;
 
@@ -970,10 +1100,8 @@ function copiarResumo() {
     navigator.clipboard.writeText(txt).then(() => showToast('✅ Texto copiado!'));
   } else {
     const ta = document.createElement('textarea');
-    ta.value = txt;
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand('copy');
+    ta.value = txt; document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy');
     document.body.removeChild(ta);
     showToast('✅ Texto copiado!');
   }
@@ -1009,13 +1137,8 @@ function fmt(n)  { return (isNaN(n) || !n ? 0 : n).toFixed(2).replace('.', ',');
 function fmt1(n) { return (isNaN(n) || !n ? 0 : n).toFixed(1).replace('.', ','); }
 
 // ════════════════════════════════════════════════════════════
-//  INIT
+//  SERVICE WORKER
 // ════════════════════════════════════════════════════════════
-renderModelos();
-renderMontar();
-updatePriceBar();
-updateCartBadge();
-
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () =>
     navigator.serviceWorker.register('./sw.js').catch(() => {})
