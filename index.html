@@ -34,21 +34,56 @@
 
     #app { max-width: 560px; margin: 0 auto; min-height: 100%; display: flex; flex-direction: column; }
 
+    /* ── LOGIN SCREEN ── */
+    #login-screen {
+      position: fixed; inset: 0; z-index: 1000;
+      background: linear-gradient(160deg, #C1572A 0%, #7a2e0e 100%);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .login-box {
+      text-align: center; color: #fff;
+      padding: 44px 28px; max-width: 340px; width: 92%;
+    }
+    .login-logo { font-size: 4.5rem; margin-bottom: 14px; }
+    .login-title { font-size: 1.55rem; font-weight: 800; margin-bottom: 5px; }
+    .login-sub { font-size: .92rem; opacity: .75; margin-bottom: 36px; line-height: 1.5; }
+    .btn-google {
+      width: 100%; padding: 16px 20px; border-radius: 14px;
+      background: #fff; color: #3c3c3c; font-weight: 700; font-size: 1rem;
+      border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      box-shadow: 0 4px 18px rgba(0,0,0,.28);
+      -webkit-tap-highlight-color: transparent;
+      transition: transform .1s;
+    }
+    .btn-google:active { transform: scale(.97); }
+    .login-footer { font-size: .72rem; opacity: .45; margin-top: 22px; line-height: 1.5; }
+
     /* ── HEADER ── */
     header {
       background: var(--terra); color: #fff;
-      padding: 16px 20px 12px; text-align: center;
+      padding: 14px 18px 10px; text-align: center;
       position: sticky; top: 0; z-index: 100;
       box-shadow: 0 2px 6px rgba(0,0,0,.2);
     }
-    header h1 { font-size: 1.2rem; font-weight: 700; }
-    header p  { font-size: .78rem; opacity: .85; margin-top: 1px; }
+    header h1 { font-size: 1.15rem; font-weight: 700; }
+    .header-user-row {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-top: 3px;
+    }
+    .header-user-name { font-size: .7rem; opacity: .7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px; }
+    .header-logout {
+      font-size: .68rem; opacity: .75;
+      background: none; border: 1px solid rgba(255,255,255,.4);
+      color: #fff; cursor: pointer; padding: 2px 9px; border-radius: 20px;
+      -webkit-tap-highlight-color: transparent; flex-shrink: 0;
+    }
 
     /* ── NAV ── */
     nav {
       display: flex; background: #fff;
       border-bottom: 2px solid var(--cinza);
-      position: sticky; top: 66px; z-index: 99;
+      position: sticky; top: 60px; z-index: 99;
     }
     nav button {
       flex: 1; padding: 11px 4px;
@@ -250,7 +285,27 @@
     .margins-table tr.hl td { font-weight: 700; }
     .badge { background: var(--amarelo); color: var(--marrom); font-size: .62rem; font-weight: 800; padding: 2px 6px; border-radius: 20px; vertical-align: middle; margin-left: 3px; }
 
-    /* ── SAVED ── */
+    /* ── CLIENTE FECHOU ── */
+    #cliente-fechou-section {
+      background: #f0faf0; border-radius: 12px;
+      padding: 14px 14px 12px;
+      margin-bottom: 10px;
+      border: 2px solid var(--verde);
+    }
+    #cliente-fechou-section .cf-title {
+      font-size: .82rem; font-weight: 800; color: var(--verde); margin-bottom: 10px;
+    }
+
+    /* ── AJUSTES COLLAPSIBLE ── */
+    .ajustes-toggle {
+      width: 100%; display: flex; justify-content: space-between; align-items: center;
+      background: none; border: none; padding: 0;
+      font-size: .88rem; font-weight: 700; color: #888;
+      cursor: pointer; -webkit-tap-highlight-color: transparent;
+    }
+    .ajustes-toggle:active { opacity: .7; }
+
+    /* ── SAVED / CLIENTS ── */
     .saved-item { background: #fff; border-radius: var(--radius); box-shadow: var(--shadow); padding: 15px; margin-bottom: 11px; }
     .saved-item-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
     .saved-item-name  { font-weight: 800; font-size: .95rem; }
@@ -363,21 +418,44 @@
   </style>
 </head>
 <body>
+
+<!-- ═══ LOGIN SCREEN ═══ -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">🍱</div>
+    <div class="login-title">Sabor da Vó Fátima</div>
+    <div class="login-sub">Calculadora de preços<br>para marmitas artesanais</div>
+    <button class="btn-google" onclick="loginGoogle()">
+      <svg width="20" height="20" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+      </svg>
+      Entrar com Google
+    </button>
+    <div class="login-footer">Seus dados ficam salvos na nuvem<br>e você acessa de qualquer celular</div>
+  </div>
+</div>
+
 <div id="app">
 
   <header>
     <h1>🍱 Sabor da Vó Fátima</h1>
-    <p>Calculadora de Preços de Marmita</p>
+    <div id="header-user" class="header-user-row" style="display:none">
+      <span class="header-user-name" id="header-user-name"></span>
+      <button class="header-logout" onclick="logout()">Sair</button>
+    </div>
   </header>
 
   <nav>
-    <button class="active" onclick="showScreen('montar',this)">🍽️<br>Montar</button>
+    <button class="active" onclick="showScreen('montar',this)">🍽️<br>Calcular</button>
     <button onclick="showScreen('ingredientes',this)">🛒<br>Ingredientes</button>
-    <button onclick="showScreen('pedido',this)" id="tab-pedido">📋<br>Pedido</button>
+    <button onclick="showScreen('pedido',this)" id="tab-pedido">📋<br>Pedidos</button>
     <button onclick="showScreen('salvas',this)">👥<br>Clientes</button>
   </nav>
 
-  <!-- ═══ MONTAR ═══ -->
+  <!-- ═══ CALCULAR (MONTAR) ═══ -->
   <div id="screen-montar" class="screen active">
 
     <!-- Modelos prontos -->
@@ -410,7 +488,7 @@
       <p style="font-weight:800;font-size:.95rem;margin-bottom:11px" id="ingr-form-title">➕ Adicionar ingrediente</p>
       <label>Nome do ingrediente</label>
       <input type="text" id="ingr-nome" placeholder="Ex: Frango, Arroz, Pote…" />
-      <label>Quanto pagou (R$)</label>
+         <label>Quanto pagou (R$)</label>
       <input type="number" id="ingr-preco" placeholder="Ex: 17,00" min="0" step="0.01" inputmode="decimal" />
       <div class="row2">
         <div>
@@ -437,7 +515,7 @@
     <div class="empty" id="ingr-empty" style="display:none"><span>🛒</span>Nenhum ingrediente ainda.</div>
   </div>
 
-  <!-- ═══ PEDIDO (CARRINHO) ═══ -->
+  <!-- ═══ PEDIDOS (CARRINHO) ═══ -->
   <div id="screen-pedido" class="screen">
     <p class="sec-title">📋 Pedido do cliente</p>
     <div id="cart-list"></div>
@@ -458,7 +536,7 @@
       <button class="btn btn-danger btn-full" onclick="limparPedido()">🗑️ Limpar Pedido</button>
     </div>
     <div class="empty" id="cart-empty">
-      <span>🛒</span>Nenhuma marmita no pedido ainda.<br>Monte uma marmita e clique <strong>"Adicionar ao Pedido"</strong>.
+      <span>🛒</span>Nenhuma marmita no pedido ainda.<br>Calcule uma marmita e clique em <strong>"✅ Cliente fechou"</strong>.
     </div>
   </div>
 
@@ -468,7 +546,7 @@
     <div id="salvas-list"></div>
     <div class="empty" id="salvas-empty" style="display:none">
       <span>👥</span>Nenhum cliente cadastrado ainda.<br>
-      Monte uma marmita e clique em <strong>"💾 Salvar cliente"</strong>.
+      Calcule uma marmita e clique em <strong>"💾 Salvar como cliente"</strong>.
     </div>
   </div>
 
@@ -482,14 +560,13 @@
   </div>
   <div class="pb-actions">
     <button class="btn btn-outline btn-sm" style="color:#fff;border-color:rgba(255,255,255,.5)" onclick="openMargensModal()">📊 Calcular</button>
-    <button class="btn btn-success btn-sm" onclick="openSaveModal()">💾 Salvar cliente</button>
   </div>
 </div>
 
-<!-- ═══ MODAL: SIMULADOR DE PREÇOS ═══ -->
+<!-- ═══ MODAL: CALCULADORA DE PREÇO ═══ -->
 <div class="modal-overlay" id="modal-margens">
   <div class="modal-box">
-    <div class="modal-title">📊 Simulador de Preços</div>
+    <div class="modal-title">📊 Calculadora de Preço</div>
 
     <!-- Custo dos ingredientes (colapsável) -->
     <div class="msec">
@@ -499,9 +576,8 @@
       </details>
     </div>
 
-    <!-- Quantidade de marmitas -->
+    <!-- Quantidade + Margem -->
     <div class="msec">
-      <div class="msec-title">🔢 Quantidade de marmitas deste tipo</div>
       <div class="row2">
         <div>
           <label style="margin-top:0">Quantas marmitas?</label>
@@ -509,7 +585,7 @@
             oninput="updateModalCalc()" style="font-size:1.1rem;font-weight:700;text-align:center" />
         </div>
         <div>
-          <label style="margin-top:0">Margem desejada (%)</label>
+          <label style="margin-top:0">Margem desejada</label>
           <select id="modal-margem-alvo" onchange="updateModalCalc()" style="font-size:1.05rem;font-weight:700">
             <option value="30">30%</option>
             <option value="35">35%</option>
@@ -523,35 +599,9 @@
       </div>
     </div>
 
-    <!-- Taxa e imposto -->
-    <div class="msec">
-      <div class="msec-title">💳 Taxas e impostos (opcional)</div>
-      <div class="row2">
-        <div>
-          <label style="margin-top:0">Taxa do cartão (%)</label>
-          <input type="number" id="modal-taxa" value="0" min="0" max="20" step="0.5" inputmode="decimal"
-            placeholder="Ex: 3" oninput="updateModalCalc()" />
-        </div>
-        <div>
-          <label style="margin-top:0">Imposto (%)</label>
-          <input type="number" id="modal-imposto" value="0" min="0" max="50" step="0.5" inputmode="decimal"
-            placeholder="Ex: 5" oninput="updateModalCalc()" />
-        </div>
-      </div>
-    </div>
-
-    <!-- Desconto -->
-    <div class="msec">
-      <div class="msec-title">🏷️ Simular desconto</div>
-      <input type="range" id="modal-desconto" min="0" max="50" step="5" value="0"
-        oninput="updateModalCalc()" />
-      <div class="slider-labels"><span>0%</span><span>10%</span><span>20%</span><span>30%</span><span>40%</span><span>50%</span></div>
-      <div class="slider-current" id="modal-desconto-val">Sem desconto</div>
-    </div>
-
     <!-- Resultado principal -->
     <div class="result-card" id="modal-result-card">
-      <div class="rc-meta">Preço de venda (sem desconto)</div>
+      <div class="rc-meta">Preço de venda</div>
       <div class="rc-big" id="rc-preco">R$ 0,00</div>
 
       <!-- Bloco de desconto: só aparece quando desconto > 0 -->
@@ -577,7 +627,7 @@
         </div>
         <div class="rc-stat">
           <div class="v" id="rc-custo-efetivo">R$ 0,00</div>
-          <div class="l">Custo total</div>
+          <div class="l">Custo</div>
         </div>
       </div>
       <div class="rc-qty-total" id="rc-qty-block" style="display:none">
@@ -586,8 +636,57 @@
       </div>
     </div>
 
-    <!-- Tabela margens -->
-    <div class="msec" style="padding:10px 0 4px">
+    <!-- Ações principais -->
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <button class="btn btn-outline btn-full" onclick="copiarPreco()">📲 Copiar preço</button>
+      <button class="btn btn-success btn-full" id="btn-cliente-fechou" onclick="expandClienteFechou()">✅ Cliente fechou</button>
+    </div>
+
+    <!-- Seção "Cliente fechou" (expansível) -->
+    <div id="cliente-fechou-section" style="display:none">
+      <div class="cf-title">🛒 Adicionar ao Pedido</div>
+      <label style="margin-top:0">Nome do cliente / marmita</label>
+      <input type="text" id="modal-pedido-nome" placeholder="Ex: Marmita do Gabriel" />
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button id="btn-add-pedido" class="btn btn-success btn-full" onclick="addToPedido()">
+          ➕ Adicionar ao Pedido
+        </button>
+        <button id="btn-cancel-edit" class="btn btn-outline" style="display:none" onclick="cancelEditCart()">✖</button>
+      </div>
+      <button class="btn btn-outline btn-full" style="margin-top:8px;font-size:.85rem;min-height:44px" onclick="salvarEAdicionarAoPedido()">
+        💾 Salvar como cliente + Adicionar ao Pedido
+      </button>
+    </div>
+
+    <!-- Ajustes (colapsável) -->
+    <div class="msec" style="margin-top:8px">
+      <button class="ajustes-toggle" onclick="toggleAjustes()">
+        <span>⚙️ Ajustes (taxa, desconto)</span>
+        <span id="ajustes-arrow">▼</span>
+      </button>
+      <div id="ajustes-body" style="display:none">
+        <div class="row2" style="margin-top:10px">
+          <div>
+            <label style="margin-top:0">Taxa do cartão (%)</label>
+            <input type="number" id="modal-taxa" value="0" min="0" max="20" step="0.5" inputmode="decimal"
+              placeholder="Ex: 3" oninput="updateModalCalc()" />
+          </div>
+          <div>
+            <label style="margin-top:0">Imposto (%)</label>
+            <input type="number" id="modal-imposto" value="0" min="0" max="50" step="0.5" inputmode="decimal"
+              placeholder="Ex: 5" oninput="updateModalCalc()" />
+          </div>
+        </div>
+        <label>Desconto</label>
+        <input type="range" id="modal-desconto" min="0" max="50" step="5" value="0"
+          oninput="updateModalCalc()" />
+        <div class="slider-labels"><span>0%</span><span>25%</span><span>50%</span></div>
+        <div class="slider-current" id="modal-desconto-val">Sem desconto</div>
+      </div>
+    </div>
+
+    <!-- Tabela comparativa de margens -->
+    <div class="msec" style="padding:10px 0 4px;margin-top:8px">
       <div class="msec-title" style="padding:0 12px 6px">Comparativo de margens</div>
       <table class="margins-table">
         <thead><tr><th>Margem</th><th>Preço/un.</th><th>Lucro/un.</th></tr></thead>
@@ -595,31 +694,19 @@
       </table>
     </div>
 
-    <!-- Adicionar ao Pedido -->
-    <div class="msec">
-      <div class="msec-title">🛒 Adicionar ao Pedido do cliente</div>
-      <label style="margin-top:0">Nome do cliente / marmita</label>
-      <input type="text" id="modal-pedido-nome" placeholder="Ex: Marmita do Gabriel" />
-      <button id="btn-add-pedido" class="btn btn-success btn-full" style="margin-top:10px" onclick="addToPedido()">
-        ➕ Adicionar ao Pedido
-      </button>
-      <button id="btn-cancel-edit" class="btn btn-outline btn-full" style="margin-top:8px;display:none" onclick="cancelEditCart()">
-        ✖ Cancelar edição
-      </button>
-    </div>
-
-    <div style="display:flex;gap:8px;margin-top:8px">
+    <!-- Rodapé do modal -->
+    <div style="display:flex;gap:8px;margin-top:10px">
       <button class="btn btn-outline btn-full" onclick="openSaveModeloModal()">📌 Salvar modelo</button>
-      <button class="btn btn-outline btn-full" onclick="openSaveModal()">👥 Salvar cliente</button>
+      <button class="btn btn-primary btn-full" onclick="fecharModal()">✖ Fechar</button>
     </div>
-    <button class="btn btn-primary btn-full" style="margin-top:8px" onclick="closeModal('modal-margens')">✖ Fechar</button>
   </div>
 </div>
 
 <!-- ═══ MODAL: SALVAR CLIENTE ═══ -->
 <div class="modal-overlay" id="modal-salvar">
   <div class="modal-box">
-    <div class="modal-title">👥 Salvar cliente</div>
+    <div class="modal-title">👥 Salvar como cliente</div>
+    <p style="font-size:.84rem;color:#888;margin-bottom:14px">O cliente será salvo com a composição atual para reutilizar depois.</p>
     <label>Nome do cliente</label>
     <input type="text" id="salvar-nome" placeholder="Ex: Gabriel, Família Silva…" />
     <div style="display:flex;gap:9px;margin-top:14px">
@@ -676,6 +763,10 @@
 <!-- ═══ TOAST ═══ -->
 <div id="toast"></div>
 
+<!-- ═══ FIREBASE SDKs ═══ -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
