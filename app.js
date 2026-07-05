@@ -1,6 +1,6 @@
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-//  FIREBASE â CONFIGURAÃÃO E AUTH
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════════════════════════════
+//  FIREBASE — CONFIGURAÇÃO E AUTH
+// ════════════════════════════════════════════════════════════
 const firebaseConfig = {
   apiKey:            "AIzaSyCSBQaD2y4P9VmB1QwKBGDzk2gtUj5dL54",
   authDomain:        "vofatima-23b27.firebaseapp.com",
@@ -59,7 +59,7 @@ async function loadUserData(uid) {
       modelos      = d.modelos  || [];
       frete        = R(d.frete) || 0;
     } else {
-      // Primeiro login â verifica se havia dados no localStorage para migrar
+      // Primeiro login — verifica se havia dados no localStorage para migrar
       const lsIngr    = tryParse(localStorage.getItem('vf_ingredientes'));
       const lsSalvas  = tryParse(localStorage.getItem('vf_salvas'));
       const lsCart    = tryParse(localStorage.getItem('vf_cart'));
@@ -71,10 +71,10 @@ async function loadUserData(uid) {
       modelos      = lsModelos || [];
       frete        = lsFrete  || 0;
       saveDB();
-      if (lsIngr) showToast('ð¦ Dados migrados para a nuvem!');
+      if (lsIngr) showToast('📦 Dados migrados para a nuvem!');
     }
   } catch (e) {
-    console.warn('Firestore indisponÃ­vel, usando padrÃ£o:', e);
+    console.warn('Firestore indisponível, usando padrão:', e);
     ingredientes = tryParse(localStorage.getItem('vf_ingredientes')) || DEFAULT_INGR;
     salvas       = tryParse(localStorage.getItem('vf_salvas'))       || [];
     cart         = tryParse(localStorage.getItem('vf_cart'))         || [];
@@ -90,13 +90,13 @@ async function loadUserData(uid) {
 let _saveTimer = null;
 function saveDB() {
   if (!currentUser) return;
-  // Salva tambÃ©m em localStorage como backup offline
+  // Salva também em localStorage como backup offline
   localStorage.setItem('vf_ingredientes', JSON.stringify(ingredientes));
   localStorage.setItem('vf_salvas',       JSON.stringify(salvas));
   localStorage.setItem('vf_cart',         JSON.stringify(cart));
   localStorage.setItem('vf_modelos',      JSON.stringify(modelos));
   localStorage.setItem('vf_frete',        String(frete));
-  // Debounce: agrupa mÃºltiplas alteraÃ§Ãµes seguidas em 1 escrita
+  // Debounce: agrupa múltiplas alterações seguidas em 1 escrita
   clearTimeout(_saveTimer);
   _saveTimer = setTimeout(() => {
     db.collection('usuarios').doc(currentUser.uid).set({
@@ -110,26 +110,26 @@ function tryParse(str) {
   try { return JSON.parse(str); } catch { return null; }
 }
 
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════════════════════════════
 //  DEFAULT DATA
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════════════════════════════
 const DEFAULT_INGR = [
   { id: uid(), nome: 'Arroz',              preco: 22,   qtd: 5,   unidade: 'kg' },
-  { id: uid(), nome: 'FeijÃ£o Carioca',     preco: 7,    qtd: 1,   unidade: 'kg' },
-  { id: uid(), nome: 'FeijÃ£o Preto',       preco: 8,    qtd: 1,   unidade: 'kg' },
+  { id: uid(), nome: 'Feijão Carioca',     preco: 7,    qtd: 1,   unidade: 'kg' },
+  { id: uid(), nome: 'Feijão Preto',       preco: 8,    qtd: 1,   unidade: 'kg' },
   { id: uid(), nome: 'Frango',             preco: 17,   qtd: 1,   unidade: 'kg' },
   { id: uid(), nome: 'Pernil',             preco: 20,   qtd: 1,   unidade: 'kg' },
-  { id: uid(), nome: 'Carne MoÃ­da',        preco: 20,   qtd: 1,   unidade: 'kg' },
-  { id: uid(), nome: 'BrÃ³colis Congelado', preco: 11.9, qtd: 1,   unidade: 'kg' },
+  { id: uid(), nome: 'Carne Moída',        preco: 20,   qtd: 1,   unidade: 'kg' },
+  { id: uid(), nome: 'Brócolis Congelado', preco: 11.9, qtd: 1,   unidade: 'kg' },
   { id: uid(), nome: 'Vagem',              preco: 12.9, qtd: 400, unidade: 'g'  },
   { id: uid(), nome: 'Cenoura',            preco: 7.5,  qtd: 500, unidade: 'g'  },
   { id: uid(), nome: 'Pote',               preco: 167,  qtd: 144, unidade: 'unidade' },
-  { id: uid(), nome: 'RÃ³tulo/Etiqueta',    preco: 85,   qtd: 300, unidade: 'unidade' },
+  { id: uid(), nome: 'Rótulo/Etiqueta',    preco: 85,   qtd: 300, unidade: 'unidade' },
 ];
 
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════════════════════════════
 //  STATE (preenchido por loadUserData)
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════════════════════════════
 let ingredientes   = [];
 let salvas         = [];
 let cart           = [];
@@ -143,9 +143,9 @@ let editingSalvaId = null;
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
 function R(n)  { const x = parseFloat(n); return isNaN(x) ? 0 : x; }
 
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-//  CÃLCULO DE PREÃO
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════════════════════════════
+//  CÁLCULO DE PREÇO
+// ════════════════════════════════════════════════════════════
 function precoPorGrama(ingr) {
   if (ingr.unidade === 'kg')      return ingr.preco / (ingr.qtd * 1000);
   if (ingr.unidade === 'g')       return ingr.preco / ingr.qtd;
@@ -192,9 +192,9 @@ function calcComDesconto(precoBase, desconto, taxaCartao, custoEfetivo) {
   return { precoFinal, lucro, margemReal };
 }
 
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════════════════════════════
 //  NAVIGATION
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════════════════════════════
 function showScreen(name, btn) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
@@ -206,9 +206,9 @@ function showScreen(name, btn) {
   if (name === 'salvas')       renderSalvas();
 }
 
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════════════════════════════
 //  MODELOS DE MARMITA
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════════════════════════════
 function custoModelo(m) {
   let t = 0;
   (m.ingrs || []).forEach(({ id, qtd }) => {
@@ -237,10 +237,10 @@ function renderModelos() {
     return `
     <div class="modelo-card" onclick="usarModelo('${m.id}')">
       <button class="modelo-card-edit" onclick="event.stopPropagation();editModelo('${m.id}')" style="position:absolute;top:6px;right:30px;background:none;border:none;cursor:pointer;font-size:14px;padding:2px">✏️</button>
-      <button class="modelo-card-del" onclick="event.stopPropagation();apagarModelo('${m.id}')">ðï¸</button>
+      <button class="modelo-card-del" onclick="event.stopPropagation();apagarModelo('${m.id}')">🗑️</button>
       <div class="modelo-card-nome">${m.nome}</div>
       <div class="modelo-card-preco">R$ ${fmt(preco)}</div>
-      <div class="modelo-card-sub">60% margem Â· toque para usar</div>
+      <div class="modelo-card-sub">60% margem · toque para usar</div>
     </div>`;
   }).join('');
 
@@ -252,7 +252,7 @@ function setCustomOpen(open) {
   const arrow = document.getElementById('custom-toggle-arrow');
   if (!body) return;
   body.style.display  = open ? 'block' : 'none';
-  if (arrow) arrow.textContent = open ? 'â²' : 'â¼';
+  if (arrow) arrow.textContent = open ? '▲' : '▼';
 }
 
 function toggleCustom() {
@@ -273,7 +273,7 @@ function usarModelo(id) {
     document.getElementById('modal-pedido-nome').value = m.nome;
     openMargensModal();
   }, 80);
-  showToast(`â­ "${m.nome}" carregado!`);
+  showToast(`⭐ "${m.nome}" carregado!`);
 }
 
 function editModelo(id) {
@@ -296,12 +296,12 @@ function apagarModelo(id) {
   modelos = modelos.filter(m => m.id !== id);
   saveDB();
   renderModelos();
-  showToast('ðï¸ Modelo apagado');
+  showToast('🗑️ Modelo apagado');
 }
 
 function openSaveModeloModal() {
   if (custoTotal() === 0) {
-    showToast('â ï¸ Adicione ingredientes com quantidade', '#d9534f'); return;
+    showToast('⚠️ Adicione ingredientes com quantidade', '#d9534f'); return;
   }
   document.getElementById('modelo-nome').value = '';
   if (document.getElementById('modal-margens').classList.contains('open'))
@@ -312,7 +312,7 @@ function openSaveModeloModal() {
 
 function confirmarSalvarModelo() {
   const nome = document.getElementById('modelo-nome').value.trim();
-  if (!nome) { showToast('â ï¸ Digite um nome para o modelo', '#d9534f'); return; }
+  if (!nome) { showToast('⚠️ Digite um nome para o modelo', '#d9534f'); return; }
   const ingrsSnap = Object.entries(selection)
     .filter(([, s]) => s.qtd)
     .map(([id, s]) => ({ id, qtd: s.qtd }));
@@ -326,12 +326,12 @@ function confirmarSalvarModelo() {
   saveDB();
   closeModal('modal-salvar-modelo');
   renderModelos();
-  showToast(`â­ Modelo "${nome}" salvo!`);
+  showToast(`⭐ Modelo "${nome}" salvo!`);
 }
 
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-//  INGREDIENTES â render
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════════════════════════════
+//  INGREDIENTES — render
+// ════════════════════════════════════════════════════════════
 function renderIngredientes() {
   const list  = document.getElementById('ingr-list');
   const empty = document.getElementById('ingr-empty');
@@ -352,26 +352,26 @@ function renderIngredientes() {
     <div class="ingr-item">
       <div class="ingr-item-info">
         <div class="ingr-item-name">${i.nome}</div>
-        <div class="ingr-item-price">Pagou R$ ${fmt(i.preco)} em ${qtdStr} â ${unStr}</div>
+        <div class="ingr-item-price">Pagou R$ ${fmt(i.preco)} em ${qtdStr} → ${unStr}</div>
       </div>
       <div class="ingr-item-actions">
-        <button class="btn btn-outline btn-sm" onclick="editIngrediente('${i.id}')">âï¸</button>
-        <button class="btn btn-danger btn-sm"  onclick="deleteIngrediente('${i.id}')">ðï¸</button>
+        <button class="btn btn-outline btn-sm" onclick="editIngrediente('${i.id}')">✏️</button>
+        <button class="btn btn-danger btn-sm"  onclick="deleteIngrediente('${i.id}')">🗑️</button>
       </div>
     </div>`;
   }).join('');
 }
 
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-//  INGREDIENTES â CRUD
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════════════════════════════
+//  INGREDIENTES — CRUD
+// ════════════════════════════════════════════════════════════
 function saveIngrediente() {
   const nome    = document.getElementById('ingr-nome').value.trim();
   const preco   = parseFloat(document.getElementById('ingr-preco').value.replace(',','.'));
   const qtd     = parseFloat(document.getElementById('ingr-qtd').value.replace(',','.'));
   const unidade = document.getElementById('ingr-unidade').value;
   if (!nome || isNaN(preco) || isNaN(qtd) || preco <= 0 || qtd <= 0) {
-    showToast('â ï¸ Preencha todos os campos', '#d9534f'); return;
+    showToast('⚠️ Preencha todos os campos', '#d9534f'); return;
   }
   if (editingId) {
     const idx = ingredientes.findIndex(i => i.id === editingId);
@@ -383,7 +383,7 @@ function saveIngrediente() {
   saveDB();
   clearIngrForm();
   renderIngredientes();
-  showToast('â Ingrediente salvo!');
+  showToast('✅ Ingrediente salvo!');
 }
 
 function editIngrediente(id) {
@@ -394,7 +394,7 @@ function editIngrediente(id) {
   document.getElementById('ingr-preco').value   = i.preco;
   document.getElementById('ingr-qtd').value     = i.qtd;
   document.getElementById('ingr-unidade').value = i.unidade;
-  document.getElementById('ingr-form-title').textContent = 'âï¸ Editar ingrediente';
+  document.getElementById('ingr-form-title').textContent = '✏️ Editar ingrediente';
   document.getElementById('ingr-cancel-btn').style.display = 'inline-flex';
   document.getElementById('ingr-form-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
@@ -404,7 +404,7 @@ function cancelEditIngrediente() { editingId = null; clearIngrForm(); }
 function clearIngrForm() {
   ['ingr-nome','ingr-preco','ingr-qtd'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('ingr-unidade').value = 'kg';
-  document.getElementById('ingr-form-title').textContent = 'â Adicionar ingrediente';
+  document.getElementById('ingr-form-title').textContent = '➕ Adicionar ingrediente';
   document.getElementById('ingr-cancel-btn').style.display = 'none';
 }
 
@@ -414,12 +414,12 @@ function deleteIngrediente(id) {
   delete selection[id];
   saveDB();
   renderIngredientes();
-  showToast('ðï¸ Ingrediente apagado');
+  showToast('🗑️ Ingrediente apagado');
 }
 
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════════════════════════════
 //  MONTAR
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════════════════════════════
 function renderMontar() {
   const list  = document.getElementById('montar-list');
   const empty = document.getElementById('montar-empty');
@@ -435,11 +435,11 @@ function renderMontar() {
     const ppg        = precoPorGrama(ingr);
     const subLabel   = ingr.unidade === 'unidade'
       ? `R$ ${fmt(ppg)} / unidade`
-      : `R$ ${fmt(ppg * 1000)}/kg Â· R$ ${fmt(ppg * 100)}/100g`;
+      : `R$ ${fmt(ppg * 1000)}/kg · R$ ${fmt(ppg * 100)}/100g`;
 
     return `
     <div class="sel-item ${isSelected ? 'selected' : ''}" id="si-${ingr.id}" onclick="toggleIngr('${ingr.id}')">
-      <div class="sel-item-check">${isSelected ? 'â' : ''}</div>
+      <div class="sel-item-check">${isSelected ? '✓' : ''}</div>
       <div class="sel-item-body">
         <div class="sel-item-name">${ingr.nome}</div>
         <div class="sel-item-sub">${subLabel}</div>
@@ -480,9 +480,9 @@ function setQtd(id, val) {
   updatePriceBar();
 }
 
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════════════════════════════
 //  PRICE BAR
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════════════════════════════
 function updatePriceBar() {
   const bar      = document.getElementById('price-bar');
   const isMontar = document.getElementById('screen-montar').classList.contains('active');
@@ -497,12 +497,12 @@ function updatePriceBar() {
   }
   const r = calcPreco(custo, 60, 0, 0);
   document.getElementById('pb-price-val').textContent = 'R$ ' + fmt(r.precoBase);
-  document.getElementById('pb-label').textContent = 'PreÃ§o sugerido (60% de margem)';
+  document.getElementById('pb-label').textContent = 'Preço sugerido (60% de margem)';
 }
 
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-//  MODAL CALCULADORA â abrir
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════════════════════════════
+//  MODAL CALCULADORA — abrir
+// ════════════════════════════════════════════════════════════
 function openMargensModal() {
   const custo = custoTotal();
 
@@ -534,9 +534,9 @@ function openMargensModal() {
   openModal('modal-margens');
 }
 
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-//  MODAL CALCULADORA â atualizaÃ§Ã£o em tempo real
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════════════════════════════
+//  MODAL CALCULADORA — atualização em tempo real
+// ════════════════════════════════════════════════════════════
 function updateModalCalc() {
   const custo      = custoTotal();
   const qtd        = Math.max(1, parseInt(document.getElementById('modal-qtd').value) || 1);
@@ -546,7 +546,7 @@ function updateModalCalc() {
   const margemAlvo = parseInt(document.getElementById('modal-margem-alvo').value) || 60;
 
   const dv = document.getElementById('modal-desconto-val');
-  dv.textContent = desconto > 0 ? `${desconto}% de desconto sobre o preÃ§o normal` : 'Sem desconto';
+  dv.textContent = desconto > 0 ? `${desconto}% de desconto sobre o preço normal` : 'Sem desconto';
   dv.style.color = desconto > 0 ? 'var(--verde)' : '#aaa';
 
   if (custo === 0) {
@@ -579,7 +579,7 @@ function updateModalCalc() {
     document.getElementById('rc-preco-orig-novo').textContent = 'R$ ' + fmt(r.precoBase);
     document.getElementById('rc-preco-com-desc').textContent  = 'R$ ' + fmt(disc.precoFinal);
     document.getElementById('rc-margem-com-desc').textContent =
-      `Margem real com desconto: ${fmt1(disc.margemReal)}%  Â·  Lucro: R$ ${fmt(disc.lucro)}`;
+      `Margem real com desconto: ${fmt1(disc.margemReal)}%  ·  Lucro: R$ ${fmt(disc.lucro)}`;
   } else {
     document.getElementById('rc-disc-section').style.display = 'none';
   }
@@ -591,7 +591,7 @@ function updateModalCalc() {
     document.getElementById('rc-qty-label').textContent   =
       `Total para ${qtd} marmitas${disc ? ' (com desconto)' : ''}:`;
     document.getElementById('rc-qty-total-txt').textContent =
-      `Cliente paga R$ ${fmt(precoParaQtd * qtd)}  Â·  Lucro R$ ${fmt(lucroParaQtd * qtd)}`;
+      `Cliente paga R$ ${fmt(precoParaQtd * qtd)}  ·  Lucro R$ ${fmt(lucroParaQtd * qtd)}`;
   } else {
     document.getElementById('rc-qty-block').style.display = 'none';
   }
@@ -601,16 +601,16 @@ function updateModalCalc() {
     const ri = calcPreco(custo, m, taxa, imposto);
     const hl = m === margemAlvo;
     return `<tr ${hl ? 'class="hl"' : ''}>
-      <td>${m}%${hl ? ' <span class="badge">â</span>' : ''}</td>
+      <td>${m}%${hl ? ' <span class="badge">✓</span>' : ''}</td>
       <td>R$ ${fmt(ri.precoBase)}</td>
       <td>R$ ${fmt(ri.lucro)}</td>
     </tr>`;
   }).join('');
 }
 
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-//  MODAL â copiar preÃ§o (sem salvar nada)
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════════════════════════════
+//  MODAL — copiar preço (sem salvar nada)
+// ════════════════════════════════════════════════════════════
 function atualizarPrecoFinal(val) {
   const preco = parseFloat((val || '0').replace(',', '.')) || 0;
   if (!window._lastCalcR || preco <= 0) return;
@@ -625,7 +625,7 @@ function atualizarPrecoFinal(val) {
 
 function copiarPreco() {
   const custo = custoTotal();
-  if (custo === 0) { showToast('â ï¸ Adicione ingredientes com quantidade', '#d9534f'); return; }
+  if (custo === 0) { showToast('⚠️ Adicione ingredientes com quantidade', '#d9534f'); return; }
 
   const taxa       = R(document.getElementById('modal-taxa').value);
   const imposto    = R(document.getElementById('modal-imposto').value);
@@ -637,30 +637,30 @@ function copiarPreco() {
   const disc = calcComDesconto(r.precoBase, desconto, taxa, r.custoEfetivo);
   const precoFinal = disc ? disc.precoFinal : r.precoBase;
 
-  let txt = `Marmita â R$ ${fmt(precoFinal)}`;
-  if (qtd > 1) txt += `\n${qtd} marmitas â R$ ${fmt(precoFinal * qtd)}`;
+  let txt = `Marmita — R$ ${fmt(precoFinal)}`;
+  if (qtd > 1) txt += `\n${qtd} marmitas — R$ ${fmt(precoFinal * qtd)}`;
   if (desconto > 0) txt += `\n(com ${desconto}% de desconto)`;
 
   if (navigator.clipboard) {
-    navigator.clipboard.writeText(txt).then(() => showToast('â PreÃ§o copiado!'));
+    navigator.clipboard.writeText(txt).then(() => showToast('✅ Preço copiado!'));
   } else {
     const ta = document.createElement('textarea');
     ta.value = txt; document.body.appendChild(ta);
     ta.select(); document.execCommand('copy');
     document.body.removeChild(ta);
-    showToast('â PreÃ§o copiado!');
+    showToast('✅ Preço copiado!');
   }
 }
 
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-//  MODAL â expansÃ£o "Cliente fechou"
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════════════════════════════
+//  MODAL — expansão "Cliente fechou"
+// ════════════════════════════════════════════════════════════
 function expandClienteFechou() {
   const section = document.getElementById('cliente-fechou-section');
   section.style.display = 'block';
-  document.getElementById('btn-cliente-fechou').textContent = 'â Cliente confirmado â²';
+  document.getElementById('btn-cliente-fechou').textContent = '✅ Cliente confirmado ▲';
   setTimeout(() => document.getElementById('modal-pedido-nome').focus(), 120);
-  // Scroll suave para a seÃ§Ã£o
+  // Scroll suave para a seção
   setTimeout(() => section.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 150);
 }
 
@@ -669,25 +669,25 @@ function toggleAjustes() {
   const arrow = document.getElementById('ajustes-arrow');
   const open  = body.style.display !== 'none';
   body.style.display  = open ? 'none' : 'block';
-  arrow.textContent   = open ? 'â¼' : 'â²';
+  arrow.textContent   = open ? '▼' : '▲';
 }
 
 function fecharModal() {
-  // Reseta estados de expansÃ£o ao fechar
+  // Reseta estados de expansão ao fechar
   document.getElementById('cliente-fechou-section').style.display = 'none';
-  document.getElementById('btn-cliente-fechou').textContent = 'â Cliente fechou';
+  document.getElementById('btn-cliente-fechou').textContent = '✅ Cliente fechou';
   closeModal('modal-margens');
 }
 
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-//  MODAL SALVAR CLIENTE (pela aba ou pelo botÃ£o no modal)
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════════════════════════════
+//  MODAL SALVAR CLIENTE (pela aba ou pelo botão no modal)
+// ════════════════════════════════════════════════════════════
 function openSaveModal() {
   if (custoTotal() === 0) {
-    showToast('â ï¸ Adicione ingredientes com quantidade', '#d9534f'); return;
+    showToast('⚠️ Adicione ingredientes com quantidade', '#d9534f'); return;
   }
   document.getElementById('salvar-nome').value = '';
-  // PrÃ©-preenche com o nome jÃ¡ digitado, se houver
+  // Pré-preenche com o nome já digitado, se houver
   const nomeAtual = document.getElementById('modal-pedido-nome').value.trim();
   if (nomeAtual) document.getElementById('salvar-nome').value = nomeAtual;
   if (document.getElementById('modal-margens').classList.contains('open'))
@@ -698,7 +698,7 @@ function openSaveModal() {
 
 function confirmarSalvar() {
   const nome = document.getElementById('salvar-nome').value.trim();
-  if (!nome) { showToast('â ï¸ Digite um nome', '#d9534f'); return; }
+  if (!nome) { showToast('⚠️ Digite um nome', '#d9534f'); return; }
   const custo = custoTotal();
   const pv    = calcPreco(custo, 60, 0, 0).precoBase;
   const itens = Object.entries(selection)
@@ -714,17 +714,17 @@ function confirmarSalvar() {
   });
   saveDB();
   closeModal('modal-salvar');
-  showToast(`â "${nome}" salvo como cliente!`);
+  showToast(`✅ "${nome}" salvo como cliente!`);
 }
 
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-//  SALVAR CLIENTE + ADICIONAR AO PEDIDO (um clique sÃ³)
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════════════════════════════
+//  SALVAR CLIENTE + ADICIONAR AO PEDIDO (um clique só)
+// ════════════════════════════════════════════════════════════
 function salvarEAdicionarAoPedido() {
   const nome = document.getElementById('modal-pedido-nome').value.trim();
-  if (!nome) { showToast('â ï¸ Digite um nome primeiro', '#d9534f'); return; }
+  if (!nome) { showToast('⚠️ Digite um nome primeiro', '#d9534f'); return; }
   const custo = custoTotal();
-  if (custo === 0) { showToast('â ï¸ Adicione ingredientes com quantidade', '#d9534f'); return; }
+  if (custo === 0) { showToast('⚠️ Adicione ingredientes com quantidade', '#d9534f'); return; }
 
   // Salva como cliente
   const pv    = calcPreco(custo, 60, 0, 0).precoBase;
@@ -741,13 +741,13 @@ function salvarEAdicionarAoPedido() {
   });
 
   // Adiciona ao pedido
-  addToPedido(true); // true = pular fechar modal (jÃ¡ fecha no addToPedido)
-  showToast(`â "${nome}" salvo e adicionado ao pedido!`);
+  addToPedido(true); // true = pular fechar modal (já fecha no addToPedido)
+  showToast(`✅ "${nome}" salvo e adicionado ao pedido!`);
 }
 
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-//  CLIENTES â lista
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════════════════════════════
+//  CLIENTES — lista
+// ════════════════════════════════════════════════════════════
 function renderSalvas() {
   const list  = document.getElementById('salvas-list');
   const empty = document.getElementById('salvas-empty');
@@ -757,21 +757,21 @@ function renderSalvas() {
   list.innerHTML = salvas.map(s => {
     const resumo = s.itens
       .map(i => `${i.nome} ${i.qtd}${i.unidade === 'unidade' ? 'und' : 'g'}`)
-      .join(' Â· ');
+      .join(' · ');
     return `
     <div class="saved-item">
       <div class="saved-item-head">
         <div>
-          <div class="saved-item-name">ð¤ ${s.nome}</div>
+          <div class="saved-item-name">👤 ${s.nome}</div>
           <div class="saved-item-date">Cadastrado em ${s.data}</div>
           <div class="saved-item-ingrs">${resumo}</div>
         </div>
         <div class="saved-item-price">R$ ${fmt(s.precoVenda)}</div>
       </div>
       <div class="saved-item-actions">
-        <button class="btn btn-success btn-sm" onclick="calcularSalva('${s.id}')">ð Calcular</button>
-        <button class="btn btn-outline btn-sm" onclick="editSalva('${s.id}')">âï¸ Editar</button>
-        <button class="btn btn-danger btn-sm"  onclick="apagarSalva('${s.id}')">ðï¸</button>
+        <button class="btn btn-success btn-sm" onclick="calcularSalva('${s.id}')">📊 Calcular</button>
+        <button class="btn btn-outline btn-sm" onclick="editSalva('${s.id}')">✏️ Editar</button>
+        <button class="btn btn-danger btn-sm"  onclick="apagarSalva('${s.id}')">🗑️</button>
       </div>
     </div>`;
   }).join('');
@@ -787,12 +787,12 @@ function calcularSalva(id) {
     document.getElementById('modal-pedido-nome').value = s.nome;
     openMargensModal();
   }, 120);
-  showToast(`ð Calculando marmita de ${s.nome}â¦`);
+  showToast(`📊 Calculando marmita de ${s.nome}…`);
 }
 
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-//  CLIENTES â editar e adicionar ao pedido
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════════════════════════════
+//  CLIENTES — editar e adicionar ao pedido
+// ════════════════════════════════════════════════════════════
 function editSalva(id) {
   const s = salvas.find(x => x.id === id);
   if (!s) return;
@@ -809,14 +809,14 @@ function confirmarEditSalva() {
   const nome  = document.getElementById('edit-salva-nome').value.trim();
   const preco = R(document.getElementById('edit-salva-preco').value.replace(',','.'));
   const qtd   = Math.max(1, parseInt(document.getElementById('edit-salva-qtd').value) || 1);
-  if (!nome || preco <= 0) { showToast('â ï¸ Preencha nome e preÃ§o', '#d9534f'); return; }
+  if (!nome || preco <= 0) { showToast('⚠️ Preencha nome e preço', '#d9534f'); return; }
   s.nome       = nome;
   s.precoVenda = preco;
   s.qtdPedido  = qtd;
   saveDB();
   closeModal('modal-edit-salva');
   renderSalvas();
-  showToast(`â "${nome}" atualizado!`);
+  showToast(`✅ "${nome}" atualizado!`);
 }
 
 function adicionarSalvaAoPedido() {
@@ -825,7 +825,7 @@ function adicionarSalvaAoPedido() {
   const nome  = document.getElementById('edit-salva-nome').value.trim();
   const preco = R(document.getElementById('edit-salva-preco').value.replace(',','.'));
   const qtd   = Math.max(1, parseInt(document.getElementById('edit-salva-qtd').value) || 1);
-  if (!nome || preco <= 0) { showToast('â ï¸ Preencha nome e preÃ§o', '#d9534f'); return; }
+  if (!nome || preco <= 0) { showToast('⚠️ Preencha nome e preço', '#d9534f'); return; }
   const ingrs      = (s.itens || []).map(i => ({ id: i.id, nome: i.nome, qtd: i.qtd, unidade: i.unidade }));
   const lucroUnit  = preco - (s.custo || 0);
   const margemReal = preco > 0 ? (lucroUnit / preco) * 100 : 0;
@@ -841,7 +841,7 @@ function adicionarSalvaAoPedido() {
   saveDB();
   updateCartBadge();
   closeModal('modal-edit-salva');
-  showToast(`â "${nome}" adicionada ao pedido!`);
+  showToast(`✅ "${nome}" adicionada ao pedido!`);
 }
 
 function apagarSalva(id) {
@@ -849,17 +849,17 @@ function apagarSalva(id) {
   salvas = salvas.filter(s => s.id !== id);
   saveDB();
   renderSalvas();
-  showToast('ðï¸ Cliente apagado');
+  showToast('🗑️ Cliente apagado');
 }
 
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-//  PEDIDO â adicionar ao carrinho
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════════════════════════════
+//  PEDIDO — adicionar ao carrinho
+// ════════════════════════════════════════════════════════════
 function addToPedido(skipToast) {
   const nome = document.getElementById('modal-pedido-nome').value.trim();
-  if (!nome) { showToast('â ï¸ Digite um nome para a marmita', '#d9534f'); return; }
+  if (!nome) { showToast('⚠️ Digite um nome para a marmita', '#d9534f'); return; }
   const custo = custoTotal();
-  if (custo === 0) { showToast('â ï¸ Adicione ingredientes com quantidade', '#d9534f'); return; }
+  if (custo === 0) { showToast('⚠️ Adicione ingredientes com quantidade', '#d9534f'); return; }
 
   const qtdMarmitas = Math.max(1, parseInt(document.getElementById('modal-qtd').value) || 1);
   const taxa        = R(document.getElementById('modal-taxa').value);
@@ -895,23 +895,23 @@ function addToPedido(skipToast) {
     cart[editingCartIdx] = novoItem;
     editingCartIdx = null;
     resetAddBtn();
-    if (!skipToast) showToast(`â "${nome}" atualizada no pedido!`);
+    if (!skipToast) showToast(`✅ "${nome}" atualizada no pedido!`);
   } else {
     cart.push(novoItem);
-    if (!skipToast) showToast(`â "${nome}" adicionada ao pedido!`);
+    if (!skipToast) showToast(`✅ "${nome}" adicionada ao pedido!`);
   }
 
   saveDB();
   updateCartBadge();
   document.getElementById('modal-pedido-nome').value = '';
   document.getElementById('cliente-fechou-section').style.display = 'none';
-  document.getElementById('btn-cliente-fechou').textContent = 'â Cliente fechou';
+  document.getElementById('btn-cliente-fechou').textContent = '✅ Cliente fechou';
   closeModal('modal-margens');
 }
 
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-//  PEDIDO â editar item do carrinho
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════════════════════════════
+//  PEDIDO — editar item do carrinho
+// ════════════════════════════════════════════════════════════
 function editCartItem(idx) {
   const item = cart[idx];
   if (!item) return;
@@ -930,11 +930,11 @@ function editCartItem(idx) {
     document.getElementById('modal-desconto').value     = item.desconto || 0;
     document.getElementById('modal-margem-alvo').value  = item.margemAlvo || 60;
 
-    document.getElementById('btn-add-pedido').textContent       = 'ð¾ Salvar ediÃ§Ã£o';
+    document.getElementById('btn-add-pedido').textContent       = '💾 Salvar edição';
     document.getElementById('btn-cancel-edit').style.display    = 'block';
 
     openMargensModal();
-    // Auto-abre seÃ§Ã£o "Cliente fechou" para ediÃ§Ã£o
+    // Auto-abre seção "Cliente fechou" para edição
     expandClienteFechou();
   }, 120);
 }
@@ -943,20 +943,20 @@ function cancelEditCart() {
   editingCartIdx = null;
   resetAddBtn();
   document.getElementById('cliente-fechou-section').style.display = 'none';
-  document.getElementById('btn-cliente-fechou').textContent = 'â Cliente fechou';
+  document.getElementById('btn-cliente-fechou').textContent = '✅ Cliente fechou';
   closeModal('modal-margens');
 }
 
 function resetAddBtn() {
   const btn = document.getElementById('btn-add-pedido');
-  if (btn) btn.textContent = 'â Adicionar ao Pedido';
+  if (btn) btn.textContent = '➕ Adicionar ao Pedido';
   const cancel = document.getElementById('btn-cancel-edit');
   if (cancel) cancel.style.display = 'none';
 }
 
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════════════════════════════
 //  FRETE
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════════════════════════════
 function updateFrete(val) {
   frete = Math.max(0, R(String(val).replace(',','.')));
   saveDB();
@@ -975,15 +975,15 @@ function updateOrderTotal() {
   <div class="order-total">
     <div class="ot-row"><span>Total de marmitas</span><span>${totalMarmitas} un.</span></div>
     ${frete > 0 ? `<div class="ot-row"><span>Subtotal</span><span>R$ ${fmt(totalItems)}</span></div>
-    <div class="ot-row"><span>ð Frete</span><span>R$ ${fmt(frete)}</span></div>` : ''}
+    <div class="ot-row"><span>🚚 Frete</span><span>R$ ${fmt(frete)}</span></div>` : ''}
     <div class="ot-row ot-lucro"><span>Lucro estimado</span><span>+R$ ${fmt(totalLucro)}</span></div>
     <div class="ot-main"><span>TOTAL</span><span>R$ ${fmt(totalComFrete)}</span></div>
   </div>`;
 }
 
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-//  PEDIDO â render carrinho
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════════════════════════════
+//  PEDIDO — render carrinho
+// ════════════════════════════════════════════════════════════
 function renderPedido() {
   const list         = document.getElementById('cart-list');
   const empty        = document.getElementById('cart-empty');
@@ -1006,10 +1006,10 @@ function renderPedido() {
     const totalCliente = item.precoUnit  * item.qtdMarmitas;
     const totalLucro   = item.lucroUnit  * item.qtdMarmitas;
     const extras = [
-      item.taxa     > 0 ? `cartÃ£o ${item.taxa}%`       : '',
+      item.taxa     > 0 ? `cartão ${item.taxa}%`       : '',
       item.imposto  > 0 ? `imposto ${item.imposto}%`   : '',
       item.desconto > 0 ? `desconto ${item.desconto}%` : '',
-    ].filter(Boolean).join(' Â· ') || 'Sem taxas/desconto';
+    ].filter(Boolean).join(' · ') || 'Sem taxas/desconto';
 
     return `
     <div class="cart-item">
@@ -1018,18 +1018,18 @@ function renderPedido() {
           <div class="cart-item-nome">${item.nome}</div>
           <div class="cart-item-meta">
             ${item.qtdMarmitas} marmita${item.qtdMarmitas > 1 ? 's' : ''}
-            Ã R$ ${fmt(item.precoUnit)} Â· margem ${item.margemAlvo}%
+            × R$ ${fmt(item.precoUnit)} · margem ${item.margemAlvo}%
           </div>
           <div class="cart-item-meta">${extras}</div>
           <div class="cart-item-lucro">
-            â Lucro: R$ ${fmt(totalLucro)} (${fmt1(item.margemReal)}% real)
+            ✅ Lucro: R$ ${fmt(totalLucro)} (${fmt1(item.margemReal)}% real)
           </div>
         </div>
         <div style="text-align:right;flex-shrink:0;margin-left:10px">
           <div class="cart-item-total">R$ ${fmt(totalCliente)}</div>
           <div style="display:flex;gap:6px;margin-top:8px;justify-content:flex-end">
-            <button class="btn btn-outline btn-sm" onclick="editCartItem(${idx})">âï¸</button>
-            <button class="btn btn-danger btn-sm"  onclick="removeCartItem(${idx})">ðï¸</button>
+            <button class="btn btn-outline btn-sm" onclick="editCartItem(${idx})">✏️</button>
+            <button class="btn btn-danger btn-sm"  onclick="removeCartItem(${idx})">🗑️</button>
           </div>
         </div>
       </div>
@@ -1045,7 +1045,7 @@ function removeCartItem(idx) {
   saveDB();
   updateCartBadge();
   renderPedido();
-  showToast('ðï¸ Item removido');
+  showToast('🗑️ Item removido');
 }
 
 function limparPedido() {
@@ -1054,7 +1054,7 @@ function limparPedido() {
   saveDB();
   updateCartBadge();
   renderPedido();
-  showToast('ðï¸ Pedido limpo');
+  showToast('🗑️ Pedido limpo');
 }
 
 function updateCartBadge() {
@@ -1062,13 +1062,13 @@ function updateCartBadge() {
   const n   = cart.length;
   const old = tab.querySelector('.tab-badge');
   if (old) old.remove();
-  if (n > 0) tab.innerHTML = `ð<span class="tab-badge">${n}</span><br>Pedidos`;
-  else        tab.innerHTML = `ð<br>Pedidos`;
+  if (n > 0) tab.innerHTML = `📋<span class="tab-badge">${n}</span><br>Pedidos`;
+  else        tab.innerHTML = `📋<br>Pedidos`;
 }
 
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════════════════════════════
 //  RESUMO DO PEDIDO
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════════════════════════════
 const EMAALACCEM = ['pote', 'rotulo', 'etiqueta', 'embalagem', 'tampa', 'saco', 'bandeja'];
 
 function isFoodItem(ingr) {
@@ -1083,11 +1083,11 @@ function formatIngredientQty(ingr) {
 }
 
 function openResumoModal() {
-  if (!cart.length) { showToast('â ï¸ Pedido estÃ¡ vazio', '#d9534f'); return; }
+  if (!cart.length) { showToast('⚠️ Pedido está vazio', '#d9534f'); return; }
 
   const hoje = new Date().toLocaleDateString('pt-BR');
-  const div  = 'â'.repeat(36);
-  let txt = `ð± ORÃAMENTO â Sabor da VÃ³ FÃ¡tima\n`;
+  const div  = '─'.repeat(36);
+  let txt = `🍱 ORÇAMENTO — Sabor da Vó Fátima\n`;
   txt    += `Data: ${hoje}\n`;
   txt    += `${div}\n\n`;
 
@@ -1096,35 +1096,35 @@ function openResumoModal() {
   cart.forEach(item => {
     const total = item.precoUnit * item.qtdMarmitas;
     subtotal   += total;
-    txt += `ð± ${item.nome}\n`;
+    txt += `🍱 ${item.nome}\n`;
     const foodIngrs = (item.ingrs || []).filter(isFoodItem);
     if (foodIngrs.length) {
-      const ingrStr = foodIngrs.map(i => `${i.nome} ${formatIngredientQty(i)}`).join(' Â· ');
+      const ingrStr = foodIngrs.map(i => `${i.nome} ${formatIngredientQty(i)}`).join(' · ');
       txt += `   ${ingrStr}\n`;
     }
-    txt += `   ${item.qtdMarmitas} marmita${item.qtdMarmitas > 1 ? 's' : ''} Ã R$ ${fmt(item.precoUnit)} = R$ ${fmt(total)}\n`;
-    if (item.desconto > 0) txt += `   ð·ï¸ Desconto de ${item.desconto}% aplicado\n`;
+    txt += `   ${item.qtdMarmitas} marmita${item.qtdMarmitas > 1 ? 's' : ''} × R$ ${fmt(item.precoUnit)} = R$ ${fmt(total)}\n`;
+    if (item.desconto > 0) txt += `   🏷️ Desconto de ${item.desconto}% aplicado\n`;
     txt += `\n`;
   });
 
   txt += `${div}\n`;
   if (frete > 0) {
     txt += `Subtotal:  R$ ${fmt(subtotal)}\n`;
-    txt += `ð Frete:  R$ ${fmt(frete)}\n`;
+    txt += `🚚 Frete:  R$ ${fmt(frete)}\n`;
     txt += `${div}\n`;
     txt += `TOTAL: R$ ${fmt(subtotal + frete)}\n`;
   } else {
     txt += `TOTAL: R$ ${fmt(subtotal)}\n`;
   }
   txt += `${div}\n\n`;
-  txt += `ð³ FORMAS DE PAGAMENTO\n`;
-  txt += `â PIX â sem nenhum acrÃ©scimo\n`;
-  txt += `â DÃ©bito â sem nenhum acrÃ©scimo\n`;
-  txt += `ð³ CrÃ©dito â com repasse da taxa operacional\n`;
+  txt += `💳 FORMAS DE PAGAMENTO\n`;
+  txt += `✅ PIX — sem nenhum acréscimo\n`;
+  txt += `✅ Débito — sem nenhum acréscimo\n`;
+  txt += `💳 Crédito — com repasse da taxa operacional\n`;
   txt += `   (confirmamos o valor exato no fechamento,\n`;
   txt += `    sem surpresas!)\n\n`;
-  txt += `Obrigada pela preferÃªncia! ð±â¤ï¸\n`;
-  txt += `Aguardando sua confirmaÃ§Ã£o para envio do link de pagamento.`;
+  txt += `Obrigada pela preferência! 🍱❤️\n`;
+  txt += `Aguardando sua confirmação para envio do link de pagamento.`;
 
   document.getElementById('resumo-texto').textContent = txt;
   openModal('modal-resumo');
@@ -1133,19 +1133,19 @@ function openResumoModal() {
 function copiarResumo() {
   const txt = document.getElementById('resumo-texto').textContent;
   if (navigator.clipboard) {
-    navigator.clipboard.writeText(txt).then(() => showToast('â Texto copiado!'));
+    navigator.clipboard.writeText(txt).then(() => showToast('✅ Texto copiado!'));
   } else {
     const ta = document.createElement('textarea');
     ta.value = txt; document.body.appendChild(ta);
     ta.select(); document.execCommand('copy');
     document.body.removeChild(ta);
-    showToast('â Texto copiado!');
+    showToast('✅ Texto copiado!');
   }
 }
 
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════════════════════════════
 //  MODAL HELPERS
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════════════════════════════
 function openModal(id)  { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
@@ -1153,9 +1153,9 @@ document.querySelectorAll('.modal-overlay').forEach(el => {
   el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
 });
 
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════════════════════════════
 //  TOAST
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════════════════════════════
 let _toastTimer = null;
 function showToast(msg, bg = '#5B7B4F') {
   const t = document.getElementById('toast');
@@ -1166,15 +1166,15 @@ function showToast(msg, bg = '#5B7B4F') {
   _toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
 }
 
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-//  FORMATAÃÃO
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════════════════════════════
+//  FORMATAÇÃO
+// ════════════════════════════════════════════════════════════
 function fmt(n)  { return (isNaN(n) || !n ? 0 : n).toFixed(2).replace('.', ','); }
 function fmt1(n) { return (isNaN(n) || !n ? 0 : n).toFixed(1).replace('.', ','); }
 
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════════════════════════════
 //  SERVICE WORKER
-// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════════════════════════════
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () =>
     navigator.serviceWorker.register('./sw.js').catch(() => {})
