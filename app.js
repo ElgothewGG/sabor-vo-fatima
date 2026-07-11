@@ -28,6 +28,7 @@ function loginGoogle() {
 
 function logout() {
   if (!confirm('Sair do aplicativo?')) return;
+  if (window._dbUnsub) { window._dbUnsub(); window._dbUnsub = null; }
   auth.signOut();
 }
 
@@ -49,8 +50,14 @@ auth.onAuthStateChanged(async user => {
 });
 
 async function loadUserData(uid) {
+  // Cancela listener anterior se existir
+  if (window._dbUnsub) { window._dbUnsub(); window._dbUnsub = null; }
+
+  const docRef = db.collection('usuarios').doc(uid);
+
+  // Carga inicial dos dados
   try {
-    const doc = await db.collection('usuarios').doc(uid).get();
+    const doc = await docRef.get();
     if (doc.exists) {
       const d = doc.data();
       ingredientes = (d.ingredientes && d.ingredientes.length) ? d.ingredientes : DEFAULT_INGR;
@@ -69,7 +76,7 @@ async function loadUserData(uid) {
       salvas       = lsSalvas || [];
       cart         = lsCart   || [];
       modelos      = lsModelos || [];
-      frete        = lsFrete  || 0;
+      frete        = lsFrete;
       saveDB();
       if (lsIngr) showToast('📦 Dados migrados para a nuvem!');
     }
@@ -81,10 +88,36 @@ async function loadUserData(uid) {
     modelos      = tryParse(localStorage.getItem('vf_modelos'))      || [];
     frete        = parseFloat(localStorage.getItem('vf_frete') || '0');
   }
+
   renderModelos();
   renderMontar();
   updatePriceBar();
   updateCartBadge();
+
+  // Listener em tempo real — sincroniza mudanças de outros dispositivos automaticamente
+  window._dbUnsub = docRef.onSnapshot(snapshot => {
+    if (!snapshot.exists) return;
+    // hasPendingWrites=true → mudança local ainda em trânsito → ignora para evitar loop
+    if (snapshot.metadata.hasPendingWrites) return;
+    const d = snapshot.data();
+    ingredientes = (d.ingredientes && d.ingredientes.length) ? d.ingredientes : DEFAULT_INGR;
+    salvas       = d.salvas   || [];
+    cart         = d.cart     || [];
+    modelos      = d.modelos  || [];
+    frete        = R(d.frete) || 0;
+    localStorage.setItem('vf_ingredientes', JSON.stringify(ingredientes));
+    localStorage.setItem('vf_salvas',       JSON.stringify(salvas));
+    localStorage.setItem('vf_cart',         JSON.stringify(cart));
+    localStorage.setItem('vf_modelos',      JSON.stringify(modelos));
+    localStorage.setItem('vf_frete',        String(frete));
+    renderModelos();
+    renderMontar();
+    updatePriceBar();
+    updateCartBadge();
+    renderSalvas();
+    renderPedido();
+    showToast('🔄 Sincronizado');
+  }, err => console.warn('Sync listener error:', err));
 }
 
 let _saveTimer = null;
