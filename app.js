@@ -665,30 +665,60 @@ function copiarPreco() {
   const imposto    = R(document.getElementById('modal-imposto').value);
   const desconto   = R(document.getElementById('modal-desconto').value);
   const margemAlvo = parseInt(document.getElementById('modal-margem-alvo').value) || 60;
-  const qtd        = Math.max(1, parseInt(document.getElementById('modal-qtd').value) || 1);
+  const qtdMarmitas = Math.max(1, parseInt(document.getElementById('modal-qtd').value) || 1);
+  const nome       = document.getElementById('modal-pedido-nome').value.trim() || 'Marmita';
 
   const r    = calcPreco(custo, margemAlvo, taxa, imposto);
   const disc = calcComDesconto(r.precoBase, desconto, taxa, r.custoEfetivo);
-  const precoFinal = disc ? disc.precoFinal : r.precoBase;
+  const precoUnit = disc ? disc.precoFinal : r.precoBase;
 
-  let txt = `Marmita — R$ ${fmt(precoFinal)}`;
-  if (qtd > 1) txt += `\n${qtd} marmitas — R$ ${fmt(precoFinal * qtd)}`;
-  if (desconto > 0) txt += `\n(com ${desconto}% de desconto)`;
+  const EMBAL = ['pote', 'rotulo', 'etiqueta', 'embalagem', 'tampa', 'saco', 'bandeja'];
+  const ingrLines = Object.entries(selection)
+    .filter(([, s]) => s.qtd)
+    .map(([id, s]) => {
+      const ingr = ingredientes.find(i => i.id === id);
+      if (!ingr) return null;
+      const nm = ingr.nome.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      if (EMBAL.some(kw => nm.includes(kw))) return null;
+      const qtdStr = ingr.unidade === 'unidade'
+        ? Math.round(s.qtd) + ' und'
+        : Math.round(s.qtd) + 'g';
+      return `• ${ingr.nome} — ${qtdStr}`;
+    })
+    .filter(Boolean);
+
+  let txt = `🍱 ${nome}\n\n`;
+  if (ingrLines.length) txt += `📋 O que tem dentro:\n${ingrLines.join('\n')}\n\n`;
+
+  if (qtdMarmitas === 1) {
+    txt += `💰 Valor: R$ ${fmt(precoUnit)}`;
+    if (disc) txt += ` (com ${desconto}% de desconto)`;
+    txt += '\n';
+  } else {
+    txt += `💰 Valor unitário: R$ ${fmt(precoUnit)}\n`;
+    if (disc) txt += `🏷️ Com ${desconto}% de desconto (de R$ ${fmt(r.precoBase)} por R$ ${fmt(precoUnit)})\n`;
+    txt += `📦 Total (${qtdMarmitas} marmitas): R$ ${fmt(precoUnit * qtdMarmitas)}\n`;
+  }
+
+  if (frete > 0) {
+    txt += `🚚 Frete: R$ ${fmt(frete)}\n`;
+    txt += `💵 Total com frete: R$ ${fmt(precoUnit * qtdMarmitas + frete)}\n`;
+  }
+
+  txt += `\n✅ Pagamento via PIX — sem acréscimo\n`;
+  txt += `\nAguardando sua confirmação! 🍱❤️`;
 
   if (navigator.clipboard) {
-    navigator.clipboard.writeText(txt).then(() => showToast('✅ Preço copiado!'));
+    navigator.clipboard.writeText(txt).then(() => showToast('✅ Orçamento copiado!'));
   } else {
     const ta = document.createElement('textarea');
     ta.value = txt; document.body.appendChild(ta);
     ta.select(); document.execCommand('copy');
     document.body.removeChild(ta);
-    showToast('✅ Preço copiado!');
+    showToast('✅ Orçamento copiado!');
   }
 }
 
-// ════════════════════════════════════════════════════════════
-//  MODAL — expansão "Cliente fechou"
-// ════════════════════════════════════════════════════════════
 function expandClienteFechou() {
   const section = document.getElementById('cliente-fechou-section');
   section.style.display = 'block';
