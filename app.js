@@ -323,27 +323,50 @@ function editModelo(id) {
   updatePriceBar();
   const nomeInput = document.getElementById('modelo-nome');
   if (nomeInput) nomeInput.value = m.nome;
+  const titleEl = document.getElementById('modal-salvar-modelo-title');
+  const btnEl  = document.getElementById('btn-confirmar-salvar-modelo');
+  const calcBtn = document.getElementById('btn-calc-salvar-modelo');
+  if (titleEl)  titleEl.textContent  = '✏️ Atualizar modelo';
+  if (btnEl)    btnEl.textContent    = '💾 Atualizar modelo';
+  if (calcBtn)  calcBtn.textContent  = '💾 Atualizar modelo';
   openModal('modal-salvar-modelo');
   showToast('✏️ Editando "' + m.nome + '"');
-}
-
-function apagarModelo(id) {
-  if (!confirm('Apagar este modelo?')) return;
-  modelos = modelos.filter(m => m.id !== id);
-  saveDB();
-  renderModelos();
-  showToast('🗑️ Modelo apagado');
 }
 
 function openSaveModeloModal() {
   if (custoTotal() === 0) {
     showToast('⚠️ Adicione ingredientes com quantidade', '#d9534f'); return;
   }
-  document.getElementById('modelo-nome').value = '';
+  const titleEl = document.getElementById('modal-salvar-modelo-title');
+  const btnEl  = document.getElementById('btn-confirmar-salvar-modelo');
+  if (window._editingModeloId) {
+    if (titleEl) titleEl.textContent = '✏️ Atualizar modelo';
+    if (btnEl)   btnEl.textContent   = '💾 Atualizar modelo';
+    const nomeInput = document.getElementById('modelo-nome');
+    if (nomeInput && !nomeInput.value) {
+      const m = modelos.find(x => x.id === window._editingModeloId);
+      if (m) nomeInput.value = m.nome;
+    }
+  } else {
+    document.getElementById('modelo-nome').value = '';
+    if (titleEl) titleEl.textContent = '📌 Salvar modelo de marmita';
+    if (btnEl)   btnEl.textContent   = '⭐ Salvar modelo';
+  }
   if (document.getElementById('modal-margens').classList.contains('open'))
     closeModal('modal-margens');
   openModal('modal-salvar-modelo');
   setTimeout(() => document.getElementById('modelo-nome').focus(), 220);
+}
+
+function cancelarSalvarModelo() {
+  window._editingModeloId = null;
+  const titleEl = document.getElementById('modal-salvar-modelo-title');
+  const btnEl  = document.getElementById('btn-confirmar-salvar-modelo');
+  const calcBtn = document.getElementById('btn-calc-salvar-modelo');
+  if (titleEl)  titleEl.textContent  = '📌 Salvar modelo de marmita';
+  if (btnEl)    btnEl.textContent    = '⭐ Salvar modelo';
+  if (calcBtn)  calcBtn.textContent  = '📌 Salvar modelo';
+  closeModal('modal-salvar-modelo');
 }
 
 function confirmarSalvarModelo() {
@@ -356,6 +379,7 @@ function confirmarSalvarModelo() {
   const precoVenda = (pfEl && parseFloat(pfEl.value) > 0)
     ? parseFloat(pfEl.value)
     : (window._lastCalcR ? window._lastCalcR.precoBase : null);
+  const isEditing = !!window._editingModeloId;
   if (window._editingModeloId) {
     const _idx = modelos.findIndex(x => x.id === window._editingModeloId);
     if (_idx !== -1) modelos[_idx] = { ...modelos[_idx], nome, ingrs: ingrsSnap, ...(precoVenda ? { precoVenda } : {}) };
@@ -363,11 +387,18 @@ function confirmarSalvarModelo() {
   } else {
     modelos.unshift({ id: uid(), nome, ingrs: ingrsSnap, ...(precoVenda ? { precoVenda } : {}), criadoEm: new Date().toLocaleDateString('pt-BR') });
   }
+  const titleEl = document.getElementById('modal-salvar-modelo-title');
+  const btnEl  = document.getElementById('btn-confirmar-salvar-modelo');
+  const calcBtn = document.getElementById('btn-calc-salvar-modelo');
+  if (titleEl)  titleEl.textContent  = '📌 Salvar modelo de marmita';
+  if (btnEl)    btnEl.textContent    = '⭐ Salvar modelo';
+  if (calcBtn)  calcBtn.textContent  = '📌 Salvar modelo';
   saveDB();
   closeModal('modal-salvar-modelo');
   renderModelos();
-  showToast(`⭐ Modelo "${nome}" salvo!`);
+  showToast(isEditing ? '✅ Modelo "' + nome + '" atualizado!' : '⭐ Modelo "' + nome + '" salvo!');
 }
+
 
 // ════════════════════════════════════════════════════════════
 //  INGREDIENTES — render
