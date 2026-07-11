@@ -1150,43 +1150,51 @@ function openResumoModal() {
   if (!cart.length) { showToast('⚠️ Pedido está vazio', '#d9534f'); return; }
 
   const hoje = new Date().toLocaleDateString('pt-BR');
-  const div  = '─'.repeat(36);
-  let txt = `🍱 ORÇAMENTO — Sabor da Vó Fátima\n`;
-  txt    += `Data: ${hoje}\n`;
-  txt    += `${div}\n\n`;
+  const DIV  = '─'.repeat(40);
+  const EMBAL = ['pote', 'rotulo', 'etiqueta', 'embalagem', 'tampa', 'saco', 'bandeja'];
+
+  let txt = `🍱 ORÇAMENTO — Sabor da Vó Fátima\nData: ${hoje}\n\n${DIV}\n\n`;
 
   let subtotal = 0;
 
   cart.forEach(item => {
     const total = item.precoUnit * item.qtdMarmitas;
-    subtotal   += total;
+    subtotal += total;
+
     txt += `🍱 ${item.nome}\n`;
-    const foodIngrs = (item.ingrs || []).filter(isFoodItem);
+
+    // Ingredientes — só alimentos, gramas arredondadas
+    const foodIngrs = (item.ingrs || []).filter(i => {
+      const nm = i.nome.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      return !EMBAL.some(kw => nm.includes(kw));
+    });
     if (foodIngrs.length) {
-      const ingrStr = foodIngrs.map(i => `${i.nome} ${formatIngredientQty(i)}`).join(' · ');
-      txt += `   ${ingrStr}\n`;
+      txt += `📋 O que tem dentro:\n`;
+      foodIngrs.forEach(i => {
+        const qtdStr = i.unidade === 'unidade'
+          ? Math.round(i.qtd) + ' und'
+          : Math.round(i.qtd) + 'g';
+        txt += `   • ${i.nome} — ${qtdStr}\n`;
+      });
     }
-    txt += `   ${item.qtdMarmitas} marmita${item.qtdMarmitas > 1 ? 's' : ''} × R$ ${fmt(item.precoUnit)} = R$ ${fmt(total)}\n`;
-    if (item.desconto > 0) txt += `   🏷️ Desconto de ${item.desconto}% aplicado\n`;
+
+    txt += `💰 ${item.qtdMarmitas} marmita${item.qtdMarmitas > 1 ? 's' : ''} × R$ ${fmt(item.precoUnit)} = R$ ${fmt(total)}\n`;
+    if (item.desconto > 0) txt += `🏷️ Com ${item.desconto}% de desconto aplicado\n`;
     txt += `\n`;
   });
 
-  txt += `${div}\n`;
+  txt += `${DIV}\n`;
   if (frete > 0) {
-    txt += `Subtotal:  R$ ${fmt(subtotal)}\n`;
-    txt += `🚚 Frete:  R$ ${fmt(frete)}\n`;
-    txt += `${div}\n`;
-    txt += `TOTAL: R$ ${fmt(subtotal + frete)}\n`;
+    txt += `Subtotal: R$ ${fmt(subtotal)}\n`;
+    txt += `🚚 Frete: R$ ${fmt(frete)}\n`;
+    txt += `${DIV}\n`;
+    txt += `💵 TOTAL: R$ ${fmt(subtotal + frete)}\n`;
   } else {
-    txt += `TOTAL: R$ ${fmt(subtotal)}\n`;
+    txt += `💵 TOTAL: R$ ${fmt(subtotal)}\n`;
   }
-  txt += `${div}\n\n`;
-  txt += `💳 FORMAS DE PAGAMENTO\n`;
-  txt += `✅ PIX — sem nenhum acréscimo\n`;
-  txt += `✅ Débito — sem nenhum acréscimo\n`;
-  txt += `💳 Crédito — com repasse da taxa operacional\n`;
-  txt += `   (confirmamos o valor exato no fechamento,\n`;
-  txt += `    sem surpresas!)\n\n`;
+
+  txt += `${DIV}\n\n`;
+  txt += `✅ Pagamento via PIX — sem acréscimo\n\n`;
   txt += `Obrigada pela preferência! 🍱❤️\n`;
   txt += `Aguardando sua confirmação para envio do link de pagamento.`;
 
