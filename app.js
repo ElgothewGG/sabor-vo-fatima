@@ -173,6 +173,7 @@ let selection      = {};
 let editingId      = null;
 let editingCartIdx = null;
 let editingSalvaId = null;
+let _clienteParaPedido = null;
 
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
 function R(n)  { const x = parseFloat(n); return isNaN(x) ? 0 : x; }
@@ -838,6 +839,7 @@ function renderSalvas() {
         <div class="saved-item-price">R$ ${fmt(s.precoVenda)}</div>
       </div>
       <div class="saved-item-actions">
+        <button class="btn btn-primary btn-sm" onclick="abrirAdicionarPedido('${s.id}')">➕ Adicionar Pedido</button>
         <button class="btn btn-success btn-sm" onclick="calcularSalva('${s.id}')">📊 Calcular</button>
         <button class="btn btn-outline btn-sm" onclick="editSalva('${s.id}')">✏️ Editar</button>
         <button class="btn btn-danger btn-sm"  onclick="apagarSalva('${s.id}')">🗑️</button>
@@ -845,6 +847,79 @@ function renderSalvas() {
     </div>`;
   }).join('');
 }
+
+function abrirAdicionarPedido(salvaId) {
+  const s = salvas.find(x => x.id === salvaId);
+  if (!s) return;
+  _clienteParaPedido = s;
+
+  document.getElementById('add-pedido-title').textContent = `➕ Pedido para ${s.nome}`;
+
+  const container = document.getElementById('add-pedido-modelos');
+  const semModelos = document.getElementById('add-pedido-sem-modelos');
+
+  if (!modelos.length) {
+    container.innerHTML = '';
+    container.style.display = 'none';
+    semModelos.style.display = 'block';
+  } else {
+    semModelos.style.display = 'none';
+    container.style.display = 'flex';
+    container.innerHTML = modelos.map(m => {
+      const custo = custoModelo(m);
+      const preco = m.precoVenda || calcPreco(custo, 60, 0, 0).precoBase;
+      return `
+      <div class="modelo-card" onclick="selecionarModeloParaCliente('${m.id}')">
+        <div class="modelo-card-nome">${m.nome}</div>
+        <div class="modelo-card-preco">R$ ${fmt(preco)}</div>
+        <div class="modelo-card-sub">toque para usar</div>
+      </div>`;
+    }).join('');
+  }
+
+  openModal('modal-add-pedido');
+}
+
+function selecionarModeloParaCliente(modeloId) {
+  const m = modelos.find(x => x.id === modeloId);
+  if (!m || !_clienteParaPedido) return;
+  const nome = _clienteParaPedido.nome;
+
+  selection = {};
+  (m.ingrs || []).forEach(i => { selection[i.id] = { qtd: i.qtd }; });
+
+  closeModal('modal-add-pedido');
+  showScreen('montar', document.querySelector('nav button'));
+  setCustomOpen(true);
+  renderMontar();
+  updatePriceBar();
+
+  setTimeout(() => {
+    document.getElementById('modal-pedido-nome').value = nome;
+    openMargensModal();
+  }, 80);
+
+  showToast(`⭐ "${m.nome}" carregado para ${nome}`);
+}
+
+function marmitaPersonalizadaParaCliente() {
+  if (!_clienteParaPedido) return;
+  const nome = _clienteParaPedido.nome;
+
+  selection = {};
+  closeModal('modal-add-pedido');
+  showScreen('montar', document.querySelector('nav button'));
+  setCustomOpen(true);
+  renderMontar();
+  updatePriceBar();
+
+  setTimeout(() => {
+    document.getElementById('modal-pedido-nome').value = nome;
+  }, 80);
+
+  showToast(`✏️ Montando marmita personalizada para ${nome}`);
+}
+
 
 function calcularSalva(id) {
   const s = salvas.find(x => x.id === id);
@@ -1153,15 +1228,22 @@ function formatIngredientQty(ingr) {
 
 function openResumoModal() {
   if (!cart.length) { showToast('⚠️ Pedido está vazio', '#d9534f'); return; }
+
   const hoje = new Date().toLocaleDateString('pt-BR');
   const DIV  = '─'.repeat(40);
   const EMBAL = ['pote', 'rotulo', 'etiqueta', 'embalagem', 'tampa', 'saco', 'bandeja'];
+
   let txt = `🍱 ORÇAMENTO — Sabor da Vó Fátima\nData: ${hoje}\n\n${DIV}\n\n`;
+
   let subtotal = 0;
+
   cart.forEach(item => {
     const total = item.precoUnit * item.qtdMarmitas;
     subtotal += total;
+
     txt += `🍱 ${item.nome}\n`;
+
+    // Ingredientes — só alimentos, gramas arredondadas
     const foodIngrs = (item.ingrs || []).filter(i => {
       const nm = i.nome.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
       return !EMBAL.some(kw => nm.includes(kw));
@@ -1169,47 +1251,48 @@ function openResumoModal() {
     if (foodIngrs.length) {
       txt += `📋 O que tem dentro:\n`;
       foodIngrs.forEach(i => {
-        const qtdStr = i.unidade === 'unidade' ? Math.round(i.qtd) + ' und' : Math.round(i.qtd) + 'g';
+        const qtdStr = i.unidade === 'unidade'
+          ? Math.round(i.qtd) + ' und'
+          : Math.round(i.qtd) + 'g';
         txt += `   • ${i.nome} — ${qtdStr}\n`;
       });
     }
+
     txt += `💰 ${item.qtdMarmitas} marmita${item.qtdMarmitas > 1 ? 's' : ''} × R$ ${fmt(item.precoUnit)} = R$ ${fmt(total)}\n`;
     if (item.desconto > 0) txt += `🏷️ Com ${item.desconto}% de desconto aplicado\n`;
     txt += `\n`;
   });
+
   txt += `${DIV}\n`;
   if (frete > 0) {
-    txt += `Subtotal: R$ ${fmt(subtotal)}\n🚚 Frete: R$ ${fmt(frete)}\n${DIV}\n💵 TOTAL: R$ ${fmt(subtotal + frete)}\n`;
+    txt += `Subtotal: R$ ${fmt(subtotal)}\n`;
+    txt += `🚚 Frete: R$ ${fmt(frete)}\n`;
+    txt += `${DIV}\n`;
+    txt += `💵 TOTAL: R$ ${fmt(subtotal + frete)}\n`;
   } else {
     txt += `💵 TOTAL: R$ ${fmt(subtotal)}\n`;
   }
-  txt += `${DIV}\n\n✅ Pagamento via PIX — sem acréscimo\n\nObrigada pela preferência! 🍱❤️\nAguardando sua confirmação para envio do link de pagamento.`;
+
+  txt += `${DIV}\n\n`;
+  txt += `✅ Pagamento via PIX — sem acréscimo\n\n`;
+  txt += `Obrigada pela preferência! 🍱❤️\n`;
+  txt += `Aguardando sua confirmação para envio do link de pagamento.`;
+
   document.getElementById('resumo-texto').textContent = txt;
   openModal('modal-resumo');
-  setTimeout(() => {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(txt).then(() => showToast('✅ Resumo copiado!')).catch(() => {});
-    }
-  }, 150);
 }
 
 function copiarResumo() {
   const txt = document.getElementById('resumo-texto').textContent;
-  if (!txt) { showToast('⚠️ Nada para copiar', '#d9534f'); return; }
-  const fallback = () => {
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(txt).then(() => showToast('✅ Texto copiado!'));
+  } else {
     const ta = document.createElement('textarea');
-    ta.value = txt;
-    ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0';
-    document.body.appendChild(ta); ta.focus(); ta.select();
-    try { document.execCommand('copy'); showToast('✅ Resumo copiado!'); closeModal('modal-resumo'); }
-    catch(e) { showToast('⚠️ Copie o texto manualmente', '#d9534f'); }
+    ta.value = txt; document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy');
     document.body.removeChild(ta);
-  };
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(txt)
-      .then(() => { showToast('✅ Resumo copiado!'); closeModal('modal-resumo'); })
-      .catch(fallback);
-  } else { fallback(); }
+    showToast('✅ Texto copiado!');
+  }
 }
 
 // ════════════════════════════════════════════════════════════
