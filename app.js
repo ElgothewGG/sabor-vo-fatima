@@ -566,9 +566,8 @@ function updatePriceBar() {
     document.getElementById('pb-label').textContent = 'Selecione ingredientes e quantidades';
     return;
   }
-  const r = calcPreco(custo, 60, 0, 0);
-  document.getElementById('pb-price-val').textContent = 'R$ ' + fmt(r.precoBase);
-  document.getElementById('pb-label').textContent = 'Preço sugerido (60% de margem)';
+  document.getElementById('pb-price-val').textContent = 'R$ ' + fmt(custo);
+  document.getElementById('pb-label').textContent = 'Custo de produção';
 }
 
 // ════════════════════════════════════════════════════════════
