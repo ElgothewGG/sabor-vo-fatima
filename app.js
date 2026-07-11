@@ -1153,22 +1153,15 @@ function formatIngredientQty(ingr) {
 
 function openResumoModal() {
   if (!cart.length) { showToast('⚠️ Pedido está vazio', '#d9534f'); return; }
-
   const hoje = new Date().toLocaleDateString('pt-BR');
   const DIV  = '─'.repeat(40);
   const EMBAL = ['pote', 'rotulo', 'etiqueta', 'embalagem', 'tampa', 'saco', 'bandeja'];
-
   let txt = `🍱 ORÇAMENTO — Sabor da Vó Fátima\nData: ${hoje}\n\n${DIV}\n\n`;
-
   let subtotal = 0;
-
   cart.forEach(item => {
     const total = item.precoUnit * item.qtdMarmitas;
     subtotal += total;
-
     txt += `🍱 ${item.nome}\n`;
-
-    // Ingredientes — só alimentos, gramas arredondadas
     const foodIngrs = (item.ingrs || []).filter(i => {
       const nm = i.nome.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
       return !EMBAL.some(kw => nm.includes(kw));
@@ -1176,48 +1169,47 @@ function openResumoModal() {
     if (foodIngrs.length) {
       txt += `📋 O que tem dentro:\n`;
       foodIngrs.forEach(i => {
-        const qtdStr = i.unidade === 'unidade'
-          ? Math.round(i.qtd) + ' und'
-          : Math.round(i.qtd) + 'g';
+        const qtdStr = i.unidade === 'unidade' ? Math.round(i.qtd) + ' und' : Math.round(i.qtd) + 'g';
         txt += `   • ${i.nome} — ${qtdStr}\n`;
       });
     }
-
     txt += `💰 ${item.qtdMarmitas} marmita${item.qtdMarmitas > 1 ? 's' : ''} × R$ ${fmt(item.precoUnit)} = R$ ${fmt(total)}\n`;
     if (item.desconto > 0) txt += `🏷️ Com ${item.desconto}% de desconto aplicado\n`;
     txt += `\n`;
   });
-
   txt += `${DIV}\n`;
   if (frete > 0) {
-    txt += `Subtotal: R$ ${fmt(subtotal)}\n`;
-    txt += `🚚 Frete: R$ ${fmt(frete)}\n`;
-    txt += `${DIV}\n`;
-    txt += `💵 TOTAL: R$ ${fmt(subtotal + frete)}\n`;
+    txt += `Subtotal: R$ ${fmt(subtotal)}\n🚚 Frete: R$ ${fmt(frete)}\n${DIV}\n💵 TOTAL: R$ ${fmt(subtotal + frete)}\n`;
   } else {
     txt += `💵 TOTAL: R$ ${fmt(subtotal)}\n`;
   }
-
-  txt += `${DIV}\n\n`;
-  txt += `✅ Pagamento via PIX — sem acréscimo\n\n`;
-  txt += `Obrigada pela preferência! 🍱❤️\n`;
-  txt += `Aguardando sua confirmação para envio do link de pagamento.`;
-
+  txt += `${DIV}\n\n✅ Pagamento via PIX — sem acréscimo\n\nObrigada pela preferência! 🍱❤️\nAguardando sua confirmação para envio do link de pagamento.`;
   document.getElementById('resumo-texto').textContent = txt;
   openModal('modal-resumo');
+  setTimeout(() => {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt).then(() => showToast('✅ Resumo copiado!')).catch(() => {});
+    }
+  }, 150);
 }
 
 function copiarResumo() {
   const txt = document.getElementById('resumo-texto').textContent;
-  if (navigator.clipboard) {
-    navigator.clipboard.writeText(txt).then(() => showToast('✅ Texto copiado!'));
-  } else {
+  if (!txt) { showToast('⚠️ Nada para copiar', '#d9534f'); return; }
+  const fallback = () => {
     const ta = document.createElement('textarea');
-    ta.value = txt; document.body.appendChild(ta);
-    ta.select(); document.execCommand('copy');
+    ta.value = txt;
+    ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    try { document.execCommand('copy'); showToast('✅ Resumo copiado!'); closeModal('modal-resumo'); }
+    catch(e) { showToast('⚠️ Copie o texto manualmente', '#d9534f'); }
     document.body.removeChild(ta);
-    showToast('✅ Texto copiado!');
-  }
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(txt)
+      .then(() => { showToast('✅ Resumo copiado!'); closeModal('modal-resumo'); })
+      .catch(fallback);
+  } else { fallback(); }
 }
 
 // ════════════════════════════════════════════════════════════
