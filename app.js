@@ -372,7 +372,7 @@ function renderIngredientes() {
   if (!ingredientes.length) { list.innerHTML = ''; empty.style.display = 'block'; return; }
   empty.style.display = 'none';
 
-  list.innerHTML = ingredientes.map(i => {
+  list.innerHTML = ingredientes.slice().sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' })).map(i => {
     const ppg    = precoPorGrama(i);
     const unStr  = i.unidade === 'unidade'
       ? `R$ ${fmt(ppg)} / unidade`
@@ -460,7 +460,7 @@ function renderMontar() {
   if (!ingredientes.length) { list.innerHTML = ''; empty.style.display = 'block'; return; }
   empty.style.display = 'none';
 
-  list.innerHTML = ingredientes.map(ingr => {
+  list.innerHTML = ingredientes.slice().sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' })).map(ingr => {
     const sel        = selection[ingr.id];
     const isSelected = !!sel;
     const qtdVal     = sel ? sel.qtd : '';
