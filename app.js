@@ -267,14 +267,15 @@ function renderModelos() {
 
   scroll.innerHTML = modelos.map(m => {
     const custo = custoModelo(m);
-    const preco = calcPreco(custo, 60, 0, 0).precoBase;
+    const preco = m.precoVenda || calcPreco(custo, 60, 0, 0).precoBase;
+    const subLabel = m.precoVenda ? 'preço salvo · toque para usar' : '60% margem · toque para usar';
     return `
     <div class="modelo-card" onclick="usarModelo('${m.id}')">
       <button class="modelo-card-edit" onclick="event.stopPropagation();editModelo('${m.id}')" style="position:absolute;top:6px;right:30px;background:none;border:none;cursor:pointer;font-size:14px;padding:2px">✏️</button>
       <button class="modelo-card-del" onclick="event.stopPropagation();apagarModelo('${m.id}')">🗑️</button>
       <div class="modelo-card-nome">${m.nome}</div>
       <div class="modelo-card-preco">R$ ${fmt(preco)}</div>
-      <div class="modelo-card-sub">60% margem · toque para usar</div>
+      <div class="modelo-card-sub">${subLabel}</div>
     </div>`;
   }).join('');
 
@@ -350,12 +351,16 @@ function confirmarSalvarModelo() {
   const ingrsSnap = Object.entries(selection)
     .filter(([, s]) => s.qtd)
     .map(([id, s]) => ({ id, qtd: s.qtd }));
+  const pfEl = document.getElementById('rc-preco-final-input');
+  const precoVenda = (pfEl && parseFloat(pfEl.value) > 0)
+    ? parseFloat(pfEl.value)
+    : (window._lastCalcR ? window._lastCalcR.precoBase : null);
   if (window._editingModeloId) {
     const _idx = modelos.findIndex(x => x.id === window._editingModeloId);
-    if (_idx !== -1) modelos[_idx] = { ...modelos[_idx], nome, ingrs: ingrsSnap };
+    if (_idx !== -1) modelos[_idx] = { ...modelos[_idx], nome, ingrs: ingrsSnap, ...(precoVenda ? { precoVenda } : {}) };
     window._editingModeloId = null;
   } else {
-    modelos.unshift({ id: uid(), nome, ingrs: ingrsSnap, criadoEm: new Date().toLocaleDateString('pt-BR') });
+    modelos.unshift({ id: uid(), nome, ingrs: ingrsSnap, ...(precoVenda ? { precoVenda } : {}), criadoEm: new Date().toLocaleDateString('pt-BR') });
   }
   saveDB();
   closeModal('modal-salvar-modelo');
