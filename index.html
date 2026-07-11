@@ -775,6 +775,31 @@
 <!-- ═══ TOAST ═══ -->
 <div id="toast"></div>
 
+
+<!-- ═══ MODAL: ADICIONAR PEDIDO PARA CLIENTE ═══ -->
+<div class="modal-overlay" id="modal-add-pedido">
+  <div class="modal-box">
+    <div class="modal-title" id="add-pedido-title">➕ Adicionar Pedido</div>
+
+    <p class="sec-title" style="margin-top:4px">⭐ Modelo pronto</p>
+    <div id="add-pedido-modelos" class="modelos-scroll" style="margin-bottom:4px"></div>
+    <p id="add-pedido-sem-modelos" style="display:none;font-size:.82rem;color:#aaa;text-align:center;padding:4px 0 10px">
+      Nenhum modelo salvo ainda
+    </p>
+
+    <p class="sec-title">🍽️ Marmita personalizada</p>
+    <button class="btn btn-outline btn-full" onclick="marmitaPersonalizadaParaCliente()">
+      🍽️ Montar do zero para este cliente
+    </button>
+
+    <button class="btn btn-outline btn-full"
+      style="margin-top:10px;color:#aaa;border-color:#ddd;font-size:.85rem;min-height:44px"
+      onclick="closeModal('modal-add-pedido')">
+      Cancelar
+    </button>
+  </div>
+</div>
+
 <!-- ═══ FIREBASE SDKs ═══ -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
