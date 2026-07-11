@@ -14,8 +14,7 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db   = firebase.firestore();
 
-// Cache offline do Firestore (funciona mesmo sem internet)
-db.enablePersistence({ synchronizeTabs: false }).catch(() => {});
+// Firestore sem persistência local — conecta sempre ao servidor para sync em tempo real
 
 let currentUser = null;
 
@@ -135,7 +134,9 @@ function saveDB() {
     db.collection('usuarios').doc(currentUser.uid).set({
       ingredientes, salvas, cart, modelos, frete,
       updatedAt: new Date().toISOString()
-    }).catch(console.error);
+    }).catch(err => {
+      console.error('[saveDB]', err.code, err.message);
+    });
   }, 800);
 }
 
