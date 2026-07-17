@@ -473,6 +473,13 @@
     <button id="custom-toggle" class="custom-toggle-btn" onclick="toggleCustom()">
       🍽️ Montar marmita personalizada <span id="custom-toggle-arrow">▼</span>
     </button>
+
+    <!-- EDIT MODE BANNER -->
+    <div id="edit-mode-banner" style="display:none;background:#fff8e1;border:2px solid #f0a500;border-radius:10px;padding:10px 14px;margin:8px 0;align-items:center;gap:10px;flex-wrap:wrap;">
+      <span style="flex:1;font-size:.88rem;font-weight:700;color:#856404;">✏️ Editando: <span id="edit-mode-nome" style="font-weight:800"></span></span>
+      <button class="btn btn-success btn-sm" onclick="openSaveModeloModal()" style="min-height:36px;padding:0 14px;font-size:.82rem;">💾 Atualizar modelo</button>
+      <button class="btn btn-outline btn-sm" onclick="cancelarSalvarModelo()" style="min-height:36px;padding:0 12px;font-size:.82rem;color:#888;border-color:#ddd;">✖ Cancelar</button>
+    </div>
     <div id="custom-body">
       <div id="montar-list"></div>
       <div class="empty" id="montar-empty" style="display:none">
