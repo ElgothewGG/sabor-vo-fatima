@@ -269,9 +269,10 @@ function renderModelos() {
   scroll.innerHTML = modelos.map(m => {
     const custo = custoModelo(m);
     const preco = m.precoVenda || calcPreco(custo, 60, 0, 0).precoBase;
-    const subLabel = m.precoVenda ? 'preço salvo · toque para usar' : '60% margem · toque para usar';
+    const precoTag = m.precoVenda ? '💰 preço salvo' : '60% margem';
+    const subLabel = m.precoVenda ? '💰 preço salvo · toque para pedir' : '60% margem · toque para pedir';
     return `
-    <div class="modelo-card" onclick="usarModelo('${m.id}')">
+    <div class="modelo-card" onclick="abrirPedidoRapido('${m.id}')">
       <button class="modelo-card-edit" onclick="event.stopPropagation();editModelo('${m.id}')" style="position:absolute;top:6px;right:30px;background:none;border:none;cursor:pointer;font-size:14px;padding:2px">✏️</button>
       <button class="modelo-card-del" onclick="event.stopPropagation();apagarModelo('${m.id}')">🗑️</button>
       <div class="modelo-card-nome">${m.nome}</div>
@@ -355,6 +356,111 @@ function apagarModelo(id) {
   renderModelos();
   showToast('🗑️ Modelo "' + m.nome + '" apagado');
 }
+function abrirPedidoRapido(id) {
+  const m = modelos.find(x => x.id === id);
+  if (!m) return;
+  window._pedidoRapidoModelo = m;
+  const custo = custoModelo(m);
+  window._pedidoRapidoPreco = m.precoVenda || calcPreco(custo, 60, 0, 0).precoBase;
+  const titleEl = document.getElementById('pr-titulo');
+  if (titleEl) titleEl.textContent = '🍱 ' + m.nome;
+  const descEl = document.getElementById('pr-descricao');
+  if (descEl) { descEl.textContent = m.descricao || ''; descEl.style.display = m.descricao ? '' : 'none'; }
+  const priceEl = document.getElementById('pr-preco-unit-display');
+  if (priceEl) priceEl.textContent = 'R$ ' + fmt(window._pedidoRapidoPreco);
+  const priceTagEl = document.getElementById('pr-preco-tag');
+  if (priceTagEl) priceTagEl.textContent = m.precoVenda ? '💰 preço salvo' : '60% margem estimada';
+  document.getElementById('pr-cliente').value = '';
+  document.getElementById('pr-qtd').value = 1;
+  document.getElementById('pr-desconto').value = '';
+  document.getElementById('pr-frete-rapido').value = '';
+  atualizarPedidoRapido();
+  openModal('modal-pedido-rapido');
+}
+
+function atualizarPedidoRapido() {
+  const precoUnit = window._pedidoRapidoPreco || 0;
+  const qtd = Math.max(1, parseInt(document.getElementById('pr-qtd').value) || 1);
+  const descontoP = parseFloat(document.getElementById('pr-desconto').value) || 0;
+  const freteVal = parseFloat(document.getElementById('pr-frete-rapido').value) || 0;
+  const precoFinal = descontoP > 0 ? precoUnit * (1 - descontoP / 100) : precoUnit;
+  const subtotal = precoFinal * qtd;
+  const total = subtotal + freteVal;
+  const subtotalEl = document.getElementById('pr-subtotal');
+  if (subtotalEl) subtotalEl.textContent = qtd + ' × R$ ' + fmt(precoFinal) + ' = R$ ' + fmt(subtotal);
+  const discRow = document.getElementById('pr-disc-row');
+  if (discRow) discRow.style.display = descontoP > 0 ? '' : 'none';
+  const discVal = document.getElementById('pr-unit-disc');
+  if (discVal) discVal.textContent = 'R$ ' + fmt(precoFinal) + ' (-' + descontoP + '%)';
+  const freteRow = document.getElementById('pr-frete-row');
+  if (freteRow) freteRow.style.display = freteVal > 0 ? '' : 'none';
+  const freteValEl = document.getElementById('pr-frete-disp');
+  if (freteValEl) freteValEl.textContent = 'R$ ' + fmt(freteVal);
+  const totalEl = document.getElementById('pr-total');
+  if (totalEl) totalEl.textContent = 'R$ ' + fmt(total);
+}
+
+function prAdjQtd(delta) {
+  const el = document.getElementById('pr-qtd');
+  el.value = Math.max(1, (parseInt(el.value) || 1) + delta);
+  atualizarPedidoRapido();
+}
+
+function copiarPedidoRapido() {
+  const m = window._pedidoRapidoModelo;
+  if (!m) return;
+  const precoUnit = window._pedidoRapidoPreco || 0;
+  if (!precoUnit) { showToast('⚠️ Modelo sem preço definido', '#d9534f'); return; }
+  const cliente = document.getElementById('pr-cliente').value.trim() || m.nome;
+  const qtd = Math.max(1, parseInt(document.getElementById('pr-qtd').value) || 1);
+  const descontoP = parseFloat(document.getElementById('pr-desconto').value) || 0;
+  const freteVal = parseFloat(document.getElementById('pr-frete-rapido').value) || 0;
+  const precoFinal = descontoP > 0 ? precoUnit * (1 - descontoP / 100) : precoUnit;
+  const subtotal = precoFinal * qtd;
+  const total = subtotal + freteVal;
+  let txt = '🍱 ' + cliente + '
+';
+  if (m.descricao) txt += m.descricao + '
+';
+  txt += '
+';
+  if (qtd === 1) {
+    txt += '💰 Valor: R$ ' + fmt(precoFinal);
+    if (descontoP > 0) txt += ' (com ' + descontoP + '% de desconto)';
+    txt += '
+';
+  } else {
+    if (descontoP > 0) {
+      txt += '💰 Valor unitário: R$ ' + fmt(precoUnit) + ' → com ' + descontoP + '% de desconto: R$ ' + fmt(precoFinal) + '/un
+';
+    } else {
+      txt += '💰 Valor unitário: R$ ' + fmt(precoUnit) + '
+';
+    }
+    txt += '📦 Total (' + qtd + ' marmitas): R$ ' + fmt(subtotal) + '
+';
+  }
+  if (freteVal > 0) {
+    txt += '🚚 Frete: R$ ' + fmt(freteVal) + '
+';
+    txt += '💵 Total com frete: R$ ' + fmt(total) + '
+';
+  }
+  txt += '
+✅ Pagamento via PIX — sem acréscimo
+';
+  txt += '
+Aguardando sua confirmação! 🍱❤️';
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(txt).then(() => { showToast('✅ Orçamento copiado!'); closeModal('modal-pedido-rapido'); });
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    showToast('✅ Orçamento copiado!'); closeModal('modal-pedido-rapido');
+  }
+}
+
+
 function openSaveModeloModal() {
   if (custoTotal() === 0) {
     showToast('⚠️ Adicione ingredientes com quantidade', '#d9534f'); return;
@@ -910,7 +1016,7 @@ function abrirAdicionarPedido(salvaId) {
       <div class="modelo-card" onclick="selecionarModeloParaCliente('${m.id}')">
         <div class="modelo-card-nome">${m.nome}</div>
         <div class="modelo-card-preco">R$ ${fmt(preco)}</div>
-        <div class="modelo-card-sub">toque para usar</div>
+        <div class="modelo-card-sub">${subLabel}</div>
       </div>`;
     }).join('');
   }
