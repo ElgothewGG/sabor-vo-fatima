@@ -759,7 +759,8 @@
     <div class="modal-title" id="modal-salvar-modelo-title">📌 Salvar modelo de marmita</div>
     <label>Nome do modelo</label>
     <input type="text" id="modelo-nome" placeholder="Ex: Marmita de Frango, Marmita Vegana…" />
-    <p style="font-size:.78rem;color:#888;margin-top:8px">O modelo salva os ingredientes e quantidades atuais. O preço é calculado automaticamente.</p>
+    <label style="margin-top:10px;display:block">Descrição (opcional)</label>
+    <textarea id="modelo-descricao" placeholder="Ex: Marmita caprichada com frango grelhado, arroz integral e legumes frescos..." rows="3" style="width:100%;resize:vertical;font-size:.88rem;padding:8px;border:1.5px solid #ddd;border-radius:8px;font-family:inherit;margin-top:4px"></textarea>
     <div style="display:flex;gap:9px;margin-top:14px">
       <button class="btn btn-success btn-full" id="btn-confirmar-salvar-modelo" onclick="confirmarSalvarModelo()">⭐ Salvar modelo</button>
       <button class="btn btn-outline" onclick="cancelarSalvarModelo()">✖</button>
