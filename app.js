@@ -329,10 +329,28 @@ function editModelo(id) {
   if (titleEl)  titleEl.textContent  = '✏️ Atualizar modelo';
   if (btnEl)    btnEl.textContent    = '💾 Atualizar modelo';
   if (calcBtn)  calcBtn.textContent  = '💾 Atualizar modelo';
-  openModal('modal-salvar-modelo');
+  // Show edit banner instead of opening modal immediately
+  const editBanner = document.getElementById('edit-mode-banner');
+  const editNomeEl = document.getElementById('edit-mode-nome');
+  if (editBanner) editBanner.style.display = 'flex';
+  if (editNomeEl) editNomeEl.textContent = m.nome;
   showToast('✏️ Editando "' + m.nome + '"');
 }
 
+function apagarModelo(id) {
+  const m = modelos.find(x => x.id === id);
+  if (!m) return;
+  if (!confirm('🗑️ Apagar o modelo "' + m.nome + '"?\n\nEsta ação não pode ser desfeita.')) return;
+  if (window._editingModeloId === id) {
+    window._editingModeloId = null;
+    const banner = document.getElementById('edit-mode-banner');
+    if (banner) banner.style.display = 'none';
+  }
+  modelos = modelos.filter(x => x.id !== id);
+  saveDB();
+  renderModelos();
+  showToast('🗑️ Modelo "' + m.nome + '" apagado');
+}
 function openSaveModeloModal() {
   if (custoTotal() === 0) {
     showToast('⚠️ Adicione ingredientes com quantidade', '#d9534f'); return;
@@ -366,6 +384,8 @@ function cancelarSalvarModelo() {
   if (titleEl)  titleEl.textContent  = '📌 Salvar modelo de marmita';
   if (btnEl)    btnEl.textContent    = '⭐ Salvar modelo';
   if (calcBtn)  calcBtn.textContent  = '📌 Salvar modelo';
+  const editBanner = document.getElementById('edit-mode-banner');
+  if (editBanner) editBanner.style.display = 'none';
   closeModal('modal-salvar-modelo');
 }
 
@@ -394,6 +414,8 @@ function confirmarSalvarModelo() {
   if (btnEl)    btnEl.textContent    = '⭐ Salvar modelo';
   if (calcBtn)  calcBtn.textContent  = '📌 Salvar modelo';
   saveDB();
+  const editBanner = document.getElementById('edit-mode-banner');
+  if (editBanner) editBanner.style.display = 'none';
   closeModal('modal-salvar-modelo');
   renderModelos();
   showToast(isEditing ? '✅ Modelo "' + nome + '" atualizado!' : '⭐ Modelo "' + nome + '" salvo!');
