@@ -448,6 +448,33 @@ function copiarPedidoRapido() {
     showToast('✅ Orçamento copiado!'); closeModal('modal-pedido-rapido');
   }
 }
+function adicionarCarrinhoPedidoRapido() {
+  var m = window._pedidoRapidoModelo;
+  if (!m) return;
+  var precoUnit = window._pedidoRapidoPreco || 0;
+  if (!precoUnit) { showToast('⚠️ Modelo sem preço definido', '#d9534f'); return; }
+  var qtd = Math.max(1, parseInt(document.getElementById('pr-qtd').value) || 1);
+  var descontoP = parseFloat(document.getElementById('pr-desconto').value) || 0;
+  cart.push({
+    id: uid(),
+    nome: m.nome,
+    qtdMarmitas: qtd,
+    custoUnit: 0,
+    precoUnit: precoUnit,
+    lucroUnit: precoUnit,
+    margemReal: 0,
+    desconto: descontoP,
+    taxa: 0,
+    imposto: 0,
+    margemAlvo: 0,
+    ingrs: [],
+    addedAt: new Date().toLocaleDateString('pt-BR')
+  });
+  renderPedido();
+  updateCartBadge();
+  closeModal('modal-pedido-rapido');
+  showToast('✅ ' + m.nome + ' adicionado ao pedido!');
+}
 function openSaveModeloModal() {
   if (custoTotal() === 0) {
     showToast('⚠️ Adicione ingredientes com quantidade', '#d9534f'); return;
