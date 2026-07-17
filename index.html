@@ -415,6 +415,8 @@
       header h1 { font-size: 1.05rem; }
       nav button { font-size: .72rem; }
     }
+  
+    .modelo-card-desc { font-size:.73rem; color:#888; margin:2px 0 4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   </style>
 </head>
 <body>
@@ -759,8 +761,7 @@
     <div class="modal-title" id="modal-salvar-modelo-title">📌 Salvar modelo de marmita</div>
     <label>Nome do modelo</label>
     <input type="text" id="modelo-nome" placeholder="Ex: Marmita de Frango, Marmita Vegana…" />
-    <label style="margin-top:10px;display:block">Descrição (opcional)</label>
-    <textarea id="modelo-descricao" placeholder="Ex: Marmita caprichada com frango grelhado, arroz integral e legumes frescos..." rows="3" style="width:100%;resize:vertical;font-size:.88rem;padding:8px;border:1.5px solid #ddd;border-radius:8px;font-family:inherit;margin-top:4px"></textarea>
+    <p style="font-size:.78rem;color:#888;margin-top:8px">O modelo salva os ingredientes e quantidades atuais. O preço é calculado automaticamente.</p>
     <div style="display:flex;gap:9px;margin-top:14px">
       <button class="btn btn-success btn-full" id="btn-confirmar-salvar-modelo" onclick="confirmarSalvarModelo()">⭐ Salvar modelo</button>
       <button class="btn btn-outline" onclick="cancelarSalvarModelo()">✖</button>
@@ -813,5 +814,59 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="app.js"></script>
+
+<!-- MODAL PEDIDO RÁPIDO -->
+<div id="modal-pedido-rapido" class="modal-overlay">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('modal-pedido-rapido')">✕</button>
+    <div class="modal-title" id="pr-titulo">🍱 Pedido</div>
+    <div id="pr-descricao" style="font-size:.85rem;color:#666;margin:-6px 0 12px;line-height:1.4;display:none"></div>
+
+    <div style="background:#e8f5e9;border-radius:8px;padding:10px 14px;margin-bottom:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div id="pr-preco-tag" style="font-size:.74rem;color:#666;margin-bottom:2px">60% margem estimada</div>
+          <div style="font-size:.84rem;color:#555">Preço unitário</div>
+        </div>
+        <span id="pr-preco-unit-display" style="font-size:1.2rem;font-weight:800;color:#2e7d32">R$ 0,00</span>
+      </div>
+    </div>
+
+    <label style="display:block;margin-bottom:4px;font-size:.85rem;font-weight:600">Nome do cliente</label>
+    <input id="pr-cliente" type="text" placeholder="Ex: Maria" style="width:100%;padding:10px;border:1.5px solid #ddd;border-radius:8px;font-size:.95rem;font-family:inherit;margin-bottom:14px;box-sizing:border-box">
+
+    <label style="display:block;margin-bottom:6px;font-size:.85rem;font-weight:600">Quantidade de marmitas</label>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <button onclick="prAdjQtd(-1)" style="width:40px;height:40px;border-radius:50%;border:2px solid #5B7B4F;background:white;color:#5B7B4F;font-size:1.4rem;cursor:pointer;line-height:1;flex-shrink:0">−</button>
+      <input id="pr-qtd" type="number" min="1" value="1" oninput="atualizarPedidoRapido()" style="width:64px;text-align:center;padding:8px;border:1.5px solid #ddd;border-radius:8px;font-size:1rem;font-family:inherit">
+      <button onclick="prAdjQtd(1)" style="width:40px;height:40px;border-radius:50%;background:#5B7B4F;border:none;color:white;font-size:1.4rem;cursor:pointer;line-height:1;flex-shrink:0">+</button>
+      <span style="font-size:.85rem;color:#777">marmitas</span>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+      <div>
+        <label style="display:block;margin-bottom:4px;font-size:.85rem;font-weight:600">Desconto (%)</label>
+        <input id="pr-desconto" type="number" min="0" max="100" placeholder="0" oninput="atualizarPedidoRapido()" style="width:100%;padding:10px;border:1.5px solid #ddd;border-radius:8px;font-size:.95rem;font-family:inherit;box-sizing:border-box">
+      </div>
+      <div>
+        <label style="display:block;margin-bottom:4px;font-size:.85rem;font-weight:600">Frete (R$)</label>
+        <input id="pr-frete-rapido" type="number" min="0" placeholder="0,00" oninput="atualizarPedidoRapido()" style="width:100%;padding:10px;border:1.5px solid #ddd;border-radius:8px;font-size:.95rem;font-family:inherit;box-sizing:border-box">
+      </div>
+    </div>
+
+    <div style="background:#f8f9fa;border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:.88rem">
+      <div id="pr-subtotal" style="color:#555;margin-bottom:4px">1 × R$ 0,00 = R$ 0,00</div>
+      <div id="pr-disc-row" style="display:none;color:#d97706;margin-bottom:4px">Com desconto: <strong id="pr-unit-disc"></strong></div>
+      <div id="pr-frete-row" style="display:none;color:#555;margin-bottom:4px">🚚 Frete: <strong id="pr-frete-disp"></strong></div>
+      <div style="font-size:1.1rem;font-weight:800;color:#222;margin-top:8px;padding-top:8px;border-top:1px solid #e0e0e0">Total: <span id="pr-total">R$ 0,00</span></div>
+    </div>
+
+    <button class="btn btn-success btn-full" onclick="copiarPedidoRapido()" style="margin-bottom:10px">📋 Copiar orçamento para o cliente</button>
+    <div style="text-align:center">
+      <button onclick="closeModal('modal-pedido-rapido');setTimeout(function(){var m=window._pedidoRapidoModelo;if(m)usarModelo(m.id);},50)" style="background:none;border:none;color:#888;font-size:.82rem;cursor:pointer;text-decoration:underline">🔧 Montar pedido personalizado</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
