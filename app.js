@@ -301,6 +301,7 @@ function usarModelo(id) {
   const m = modelos.find(x => x.id === id);
   if (!m) return;
   window._modeloPrecoVenda = m.precoVenda || null;
+  window._modeloDescricao = m.descricao || '';
   selection = {};
   (m.ingrs || []).forEach(i => { selection[i.id] = { qtd: i.qtd }; });
   setCustomOpen(true);
@@ -324,6 +325,8 @@ function editModelo(id) {
   updatePriceBar();
   const nomeInput = document.getElementById('modelo-nome');
   if (nomeInput) nomeInput.value = m.nome;
+  const descInput = document.getElementById('modelo-descricao');
+  if (descInput) descInput.value = m.descricao || '';
   const titleEl = document.getElementById('modal-salvar-modelo-title');
   const btnEl  = document.getElementById('btn-confirmar-salvar-modelo');
   const calcBtn = document.getElementById('btn-calc-salvar-modelo');
@@ -368,6 +371,7 @@ function openSaveModeloModal() {
     }
   } else {
     document.getElementById('modelo-nome').value = '';
+    if (document.getElementById('modelo-descricao')) document.getElementById('modelo-descricao').value = '';
     if (titleEl) titleEl.textContent = '📌 Salvar modelo de marmita';
     if (btnEl)   btnEl.textContent   = '⭐ Salvar modelo';
   }
@@ -392,6 +396,7 @@ function cancelarSalvarModelo() {
 
 function confirmarSalvarModelo() {
   const nome = document.getElementById('modelo-nome').value.trim();
+  const descricao = (document.getElementById('modelo-descricao')?.value || '').trim();
   if (!nome) { showToast('⚠️ Digite um nome para o modelo', '#d9534f'); return; }
   const ingrsSnap = Object.entries(selection)
     .filter(([, s]) => s.qtd)
@@ -403,10 +408,10 @@ function confirmarSalvarModelo() {
   const isEditing = !!window._editingModeloId;
   if (window._editingModeloId) {
     const _idx = modelos.findIndex(x => x.id === window._editingModeloId);
-    if (_idx !== -1) modelos[_idx] = { ...modelos[_idx], nome, ingrs: ingrsSnap, ...(precoVenda ? { precoVenda } : {}) };
+    if (_idx !== -1) modelos[_idx] = { ...modelos[_idx], nome, ingrs: ingrsSnap, ...(precoVenda ? { precoVenda } : {}), ...(descricao ? { descricao } : {}) };
     window._editingModeloId = null;
   } else {
-    modelos.unshift({ id: uid(), nome, ingrs: ingrsSnap, ...(precoVenda ? { precoVenda } : {}), criadoEm: new Date().toLocaleDateString('pt-BR') });
+    modelos.unshift({ id: uid(), nome, ingrs: ingrsSnap, ...(precoVenda ? { precoVenda } : {}), ...(descricao ? { descricao } : {}), criadoEm: new Date().toLocaleDateString('pt-BR') });
   }
   const titleEl = document.getElementById('modal-salvar-modelo-title');
   const btnEl  = document.getElementById('btn-confirmar-salvar-modelo');
@@ -726,6 +731,7 @@ function copiarPreco() {
   const margemAlvo = parseInt(document.getElementById('modal-margem-alvo').value) || 60;
   const qtdMarmitas = Math.max(1, parseInt(document.getElementById('modal-qtd').value) || 1);
   const nome       = document.getElementById('modal-pedido-nome').value.trim() || 'Marmita';
+  const descricaoModelo = window._modeloDescricao || '';
 
   const r    = calcPreco(custo, margemAlvo, taxa, imposto);
   const disc = calcComDesconto(r.precoBase, desconto, taxa, r.custoEfetivo);
@@ -734,7 +740,9 @@ function copiarPreco() {
   const EMBAL = ['pote', 'rotulo', 'etiqueta', 'embalagem', 'tampa', 'saco', 'bandeja'];
 
 
-  let txt = `🍱 ${nome}\n\n`;
+  let txt = `🍱 ${nome}\n`;
+  if (descricaoModelo) txt += `${descricaoModelo}\n`;
+  txt += '\n';
 
   if (frete > 0) {
     txt += `🚚 Frete: R$ ${fmt(frete)}\n`;
