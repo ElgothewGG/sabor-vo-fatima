@@ -407,60 +407,47 @@ function prAdjQtd(delta) {
 }
 
 function copiarPedidoRapido() {
-  const m = window._pedidoRapidoModelo;
+  var m = window._pedidoRapidoModelo;
   if (!m) return;
-  const precoUnit = window._pedidoRapidoPreco || 0;
+  var precoUnit = window._pedidoRapidoPreco || 0;
   if (!precoUnit) { showToast('⚠️ Modelo sem preço definido', '#d9534f'); return; }
-  const cliente = document.getElementById('pr-cliente').value.trim() || m.nome;
-  const qtd = Math.max(1, parseInt(document.getElementById('pr-qtd').value) || 1);
-  const descontoP = parseFloat(document.getElementById('pr-desconto').value) || 0;
-  const freteVal = parseFloat(document.getElementById('pr-frete-rapido').value) || 0;
-  const precoFinal = descontoP > 0 ? precoUnit * (1 - descontoP / 100) : precoUnit;
-  const subtotal = precoFinal * qtd;
-  const total = subtotal + freteVal;
-  let txt = '🍱 ' + cliente + '
-';
-  if (m.descricao) txt += m.descricao + '
-';
-  txt += '
-';
+  var cliente = document.getElementById('pr-cliente').value.trim() || m.nome;
+  var qtd = Math.max(1, parseInt(document.getElementById('pr-qtd').value) || 1);
+  var descontoP = parseFloat(document.getElementById('pr-desconto').value) || 0;
+  var freteVal = parseFloat(document.getElementById('pr-frete-rapido').value) || 0;
+  var precoFinal = descontoP > 0 ? precoUnit * (1 - descontoP / 100) : precoUnit;
+  var subtotal = precoFinal * qtd;
+  var total = subtotal + freteVal;
+  var lf = '\n';
+  var txt = '🍱 ' + cliente + lf;
+  if (m.descricao) txt += m.descricao + lf;
+  txt += lf;
   if (qtd === 1) {
     txt += '💰 Valor: R$ ' + fmt(precoFinal);
     if (descontoP > 0) txt += ' (com ' + descontoP + '% de desconto)';
-    txt += '
-';
+    txt += lf;
   } else {
     if (descontoP > 0) {
-      txt += '💰 Valor unitário: R$ ' + fmt(precoUnit) + ' → com ' + descontoP + '% de desconto: R$ ' + fmt(precoFinal) + '/un
-';
+      txt += '💰 Valor unit.: R$ ' + fmt(precoUnit) + ' (desconto ' + descontoP + '%): R$ ' + fmt(precoFinal) + '/un' + lf;
     } else {
-      txt += '💰 Valor unitário: R$ ' + fmt(precoUnit) + '
-';
+      txt += '💰 Valor unit.: R$ ' + fmt(precoUnit) + lf;
     }
-    txt += '📦 Total (' + qtd + ' marmitas): R$ ' + fmt(subtotal) + '
-';
+    txt += '📦 Total (' + qtd + ' marmitas): R$ ' + fmt(subtotal) + lf;
   }
   if (freteVal > 0) {
-    txt += '🚚 Frete: R$ ' + fmt(freteVal) + '
-';
-    txt += '💵 Total com frete: R$ ' + fmt(total) + '
-';
+    txt += '🚚 Frete: R$ ' + fmt(freteVal) + lf;
+    txt += '💵 Total com frete: R$ ' + fmt(total) + lf;
   }
-  txt += '
-✅ Pagamento via PIX — sem acréscimo
-';
-  txt += '
-Aguardando sua confirmação! 🍱❤️';
+  txt += lf + '✅ Pagamento via PIX - sem acréscimo' + lf;
+  txt += lf + 'Aguardando sua confirmação! 🍱❤️';
   if (navigator.clipboard) {
-    navigator.clipboard.writeText(txt).then(() => { showToast('✅ Orçamento copiado!'); closeModal('modal-pedido-rapido'); });
+    navigator.clipboard.writeText(txt).then(function() { showToast('✅ Orçamento copiado!'); closeModal('modal-pedido-rapido'); });
   } else {
-    const ta = document.createElement('textarea');
+    var ta = document.createElement('textarea');
     ta.value = txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
     showToast('✅ Orçamento copiado!'); closeModal('modal-pedido-rapido');
   }
 }
-
-
 function openSaveModeloModal() {
   if (custoTotal() === 0) {
     showToast('⚠️ Adicione ingredientes com quantidade', '#d9534f'); return;
