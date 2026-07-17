@@ -300,6 +300,7 @@ function toggleCustom() {
 function usarModelo(id) {
   const m = modelos.find(x => x.id === id);
   if (!m) return;
+  window._modeloPrecoVenda = m.precoVenda || null;
   selection = {};
   (m.ingrs || []).forEach(i => { selection[i.id] = { qtd: i.qtd }; });
   setCustomOpen(true);
@@ -728,35 +729,12 @@ function copiarPreco() {
 
   const r    = calcPreco(custo, margemAlvo, taxa, imposto);
   const disc = calcComDesconto(r.precoBase, desconto, taxa, r.custoEfetivo);
-  const precoUnit = disc ? disc.precoFinal : r.precoBase;
+  const precoUnit = (window._modeloPrecoVenda && !disc) ? window._modeloPrecoVenda : (disc ? disc.precoFinal : r.precoBase);
 
   const EMBAL = ['pote', 'rotulo', 'etiqueta', 'embalagem', 'tampa', 'saco', 'bandeja'];
-  const ingrLines = Object.entries(selection)
-    .filter(([, s]) => s.qtd)
-    .map(([id, s]) => {
-      const ingr = ingredientes.find(i => i.id === id);
-      if (!ingr) return null;
-      const nm = ingr.nome.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-      if (EMBAL.some(kw => nm.includes(kw))) return null;
-      const qtdStr = ingr.unidade === 'unidade'
-        ? Math.round(s.qtd) + ' und'
-        : Math.round(s.qtd) + 'g';
-      return `• ${ingr.nome} — ${qtdStr}`;
-    })
-    .filter(Boolean);
+
 
   let txt = `🍱 ${nome}\n\n`;
-  if (ingrLines.length) txt += `📋 O que tem dentro:\n${ingrLines.join('\n')}\n\n`;
-
-  if (qtdMarmitas === 1) {
-    txt += `💰 Valor: R$ ${fmt(precoUnit)}`;
-    if (disc) txt += ` (com ${desconto}% de desconto)`;
-    txt += '\n';
-  } else {
-    txt += `💰 Valor unitário: R$ ${fmt(precoUnit)}\n`;
-    if (disc) txt += `🏷️ Com ${desconto}% de desconto (de R$ ${fmt(r.precoBase)} por R$ ${fmt(precoUnit)})\n`;
-    txt += `📦 Total (${qtdMarmitas} marmitas): R$ ${fmt(precoUnit * qtdMarmitas)}\n`;
-  }
 
   if (frete > 0) {
     txt += `🚚 Frete: R$ ${fmt(frete)}\n`;
@@ -1296,20 +1274,7 @@ function openResumoModal() {
     txt += `🍱 ${item.nome}\n`;
 
     // Ingredientes — só alimentos, gramas arredondadas
-    const foodIngrs = (item.ingrs || []).filter(i => {
-      const nm = i.nome.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-      return !EMBAL.some(kw => nm.includes(kw));
-    });
-    if (foodIngrs.length) {
-      txt += `📋 O que tem dentro:\n`;
-      foodIngrs.forEach(i => {
-        const qtdStr = i.unidade === 'unidade'
-          ? Math.round(i.qtd) + ' und'
-          : Math.round(i.qtd) + 'g';
-        txt += `   • ${i.nome} — ${qtdStr}\n`;
-      });
-    }
-
+    
     txt += `💰 ${item.qtdMarmitas} marmita${item.qtdMarmitas > 1 ? 's' : ''} × R$ ${fmt(item.precoUnit)} = R$ ${fmt(total)}\n`;
     if (item.desconto > 0) txt += `🏷️ Com ${item.desconto}% de desconto aplicado\n`;
     txt += `\n`;
