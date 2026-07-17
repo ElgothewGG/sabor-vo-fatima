@@ -1,4 +1,4 @@
-const CACHE = 'vofatima-v16';
+const CACHE = 'vofatima-v17';
 const ASSETS = ['./', './index.html', './app.js', './manifest.json'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
