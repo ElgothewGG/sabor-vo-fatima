@@ -276,6 +276,7 @@ function renderModelos() {
       <button class="modelo-card-edit" onclick="event.stopPropagation();editModelo('${m.id}')" style="position:absolute;top:6px;right:30px;background:none;border:none;cursor:pointer;font-size:14px;padding:2px">✏️</button>
       <button class="modelo-card-del" onclick="event.stopPropagation();apagarModelo('${m.id}')">🗑️</button>
       <div class="modelo-card-nome">${m.nome}</div>
+      ${m.descricao ? '<div class="modelo-card-desc">' + m.descricao + '</div>' : ''}
       <div class="modelo-card-preco">R$ ${fmt(preco)}</div>
       <div class="modelo-card-sub">${subLabel}</div>
     </div>`;
@@ -455,21 +456,31 @@ function adicionarCarrinhoPedidoRapido() {
   if (!precoUnit) { showToast('⚠️ Modelo sem preço definido', '#d9534f'); return; }
   var qtd = Math.max(1, parseInt(document.getElementById('pr-qtd').value) || 1);
   var descontoP = parseFloat(document.getElementById('pr-desconto').value) || 0;
+  var precoFinal = descontoP > 0 ? precoUnit * (1 - descontoP / 100) : precoUnit;
+  var custo = custoModelo(m);
+  var lucro = precoFinal - custo;
+  var margem = precoFinal > 0 ? (lucro / precoFinal) * 100 : 0;
+  var ingrs = (m.ingrs || []).map(function(i) {
+    var ing = ingredientes.find(function(x) { return x.id === i.id; });
+    return ing ? { id: i.id, nome: ing.nome, qtd: i.qtd, unidade: ing.unidade } : null;
+  }).filter(Boolean);
   cart.push({
     id: uid(),
     nome: m.nome,
+    descricao: m.descricao || '',
     qtdMarmitas: qtd,
-    custoUnit: 0,
-    precoUnit: precoUnit,
-    lucroUnit: precoUnit,
-    margemReal: 0,
+    custoUnit: custo,
+    precoUnit: precoFinal,
+    lucroUnit: lucro,
+    margemReal: margem,
     desconto: descontoP,
     taxa: 0,
     imposto: 0,
     margemAlvo: 0,
-    ingrs: [],
+    ingrs: ingrs,
     addedAt: new Date().toLocaleDateString('pt-BR')
   });
+  saveDB();
   renderPedido();
   updateCartBadge();
   closeModal('modal-pedido-rapido');
@@ -863,6 +874,16 @@ function copiarPreco() {
   let txt = `🍱 ${nome}\n`;
   if (descricaoModelo) txt += `${descricaoModelo}\n`;
   txt += '\n';
+
+  if (qtdMarmitas === 1) {
+    txt += `💰 Valor: R$ ${fmt(precoUnit)}`;
+    if (desconto > 0) txt += ` (com ${desconto}% de desconto)`;
+    txt += '\n';
+  } else {
+    txt += `💰 Valor unitário: R$ ${fmt(precoUnit)}\n`;
+    if (desconto > 0) txt += `   (já com ${desconto}% de desconto)\n`;
+    txt += `📦 Total (${qtdMarmitas} marmitas): R$ ${fmt(precoUnit * qtdMarmitas)}\n`;
+  }
 
   if (frete > 0) {
     txt += `🚚 Frete: R$ ${fmt(frete)}\n`;
@@ -1371,7 +1392,7 @@ function updateCartBadge() {
 // ════════════════════════════════════════════════════════════
 //  RESUMO DO PEDIDO
 // ════════════════════════════════════════════════════════════
-const EMAALACCEM = ['pote', 'rotulo', 'etiqueta', 'embalagem', 'tampa', 'saco', 'bandeja'];
+const EMBALAGEM = ['pote', 'rotulo', 'etiqueta', 'embalagem', 'tampa', 'saco', 'bandeja'];
 
 function isFoodItem(ingr) {
   const n = (ingr.nome || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
@@ -1400,6 +1421,7 @@ function openResumoModal() {
     subtotal += total;
 
     txt += `🍱 ${item.nome}\n`;
+    if (item.descricao) txt += `${item.descricao}\n`;
 
     // Ingredientes — só alimentos, gramas arredondadas
     
