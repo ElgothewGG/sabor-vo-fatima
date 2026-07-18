@@ -176,7 +176,7 @@ let editingSalvaId = null;
 let _clienteParaPedido = null;
 
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
-function R(n)  { const x = parseFloat(n); return isNaN(x) ? 0 : x; }
+function R(n)  { const x = parseFloat(String(n == null ? '' : n).replace(',', '.')); return isNaN(x) ? 0 : x; }
 
 // ════════════════════════════════════════════════════════════
 //  CÁLCULO DE PREÇO
@@ -270,7 +270,7 @@ function renderModelos() {
     const custo = custoModelo(m);
     const preco = m.precoVenda || calcPreco(custo, 60, 0, 0).precoBase;
     const precoTag = m.precoVenda ? '💰 preço salvo' : '60% margem';
-    const subLabel = m.precoVenda ? '💰 preço salvo · toque para pedir' : '60% margem · toque para pedir';
+    const subLabel = m.precoVenda ? '💰 preço salvo · toque para pedir' : 'preço sugerido · toque para pedir';
     return `
     <div class="modelo-card" onclick="abrirPedidoRapido('${m.id}')">
       <button class="modelo-card-edit" onclick="event.stopPropagation();editModelo('${m.id}')" style="position:absolute;top:6px;right:30px;background:none;border:none;cursor:pointer;font-size:14px;padding:2px">✏️</button>
@@ -370,20 +370,62 @@ function abrirPedidoRapido(id) {
   const priceEl = document.getElementById('pr-preco-unit-display');
   if (priceEl) priceEl.textContent = 'R$ ' + fmt(window._pedidoRapidoPreco);
   const priceTagEl = document.getElementById('pr-preco-tag');
-  if (priceTagEl) priceTagEl.textContent = m.precoVenda ? '💰 preço salvo' : '60% margem estimada';
+  if (priceTagEl) priceTagEl.textContent = m.precoVenda ? '💰 preço salvo' : 'preço sugerido (60% de lucro)';
   document.getElementById('pr-cliente').value = '';
   document.getElementById('pr-qtd').value = 1;
   document.getElementById('pr-desconto').value = '';
   document.getElementById('pr-frete-rapido').value = '';
+  renderPagamentoChips();
   atualizarPedidoRapido();
   openModal('modal-pedido-rapido');
+}
+
+function getPagamentos() {
+  try {
+    const arr = JSON.parse(localStorage.getItem('vf_pagtos'));
+    if (Array.isArray(arr) && arr.length) return arr;
+  } catch (e) {}
+  return ['pix'];
+}
+
+function togglePagamento(key) {
+  let sel = getPagamentos();
+  if (sel.includes(key)) {
+    if (sel.length > 1) sel = sel.filter(k => k !== key);
+  } else {
+    sel.push(key);
+  }
+  localStorage.setItem('vf_pagtos', JSON.stringify(sel));
+  renderPagamentoChips();
+}
+
+function renderPagamentoChips() {
+  const box = document.getElementById('pr-pagamentos');
+  if (!box) return;
+  const sel = getPagamentos();
+  const opts = [['pix', 'PIX'], ['dinheiro', 'Dinheiro'], ['cartao', 'Cartão']];
+  box.innerHTML = opts.map(function(o) {
+    const on = sel.includes(o[0]);
+    return '<button type="button" onclick="togglePagamento(\'' + o[0] + '\')" style="flex:1;padding:12px 6px;border-radius:10px;font-size:.92rem;font-weight:700;cursor:pointer;border:2px solid ' + (on ? '#5B7B4F' : '#ccc') + ';background:' + (on ? '#5B7B4F' : '#fff') + ';color:' + (on ? '#fff' : '#777') + '">' + (on ? '✓ ' : '') + o[1] + '</button>';
+  }).join('');
+}
+
+function linhaPagamento() {
+  const sel = getPagamentos();
+  const nomes = { pix: 'PIX', dinheiro: 'Dinheiro', cartao: 'Cartão' };
+  const lista = sel.map(function(k) { return nomes[k]; }).filter(Boolean);
+  let s = '💳 Pagamento: ';
+  if (lista.length === 1) s += lista[0];
+  else s += lista.slice(0, -1).join(', ') + ' ou ' + lista[lista.length - 1];
+  if (sel.includes('pix')) s += '\n✅ PIX sem nenhum acréscimo';
+  return s;
 }
 
 function atualizarPedidoRapido() {
   const precoUnit = window._pedidoRapidoPreco || 0;
   const qtd = Math.max(1, parseInt(document.getElementById('pr-qtd').value) || 1);
-  const descontoP = parseFloat(document.getElementById('pr-desconto').value) || 0;
-  const freteVal = parseFloat(document.getElementById('pr-frete-rapido').value) || 0;
+  const descontoP = R(document.getElementById('pr-desconto').value);
+  const freteVal = R(document.getElementById('pr-frete-rapido').value);
   const precoFinal = descontoP > 0 ? precoUnit * (1 - descontoP / 100) : precoUnit;
   const subtotal = precoFinal * qtd;
   const total = subtotal + freteVal;
@@ -407,55 +449,65 @@ function prAdjQtd(delta) {
   atualizarPedidoRapido();
 }
 
-function copiarPedidoRapido() {
-  var m = window._pedidoRapidoModelo;
-  if (!m) return;
-  var precoUnit = window._pedidoRapidoPreco || 0;
-  if (!precoUnit) { showToast('⚠️ Modelo sem preço definido', '#d9534f'); return; }
-  var cliente = document.getElementById('pr-cliente').value.trim() || m.nome;
-  var qtd = Math.max(1, parseInt(document.getElementById('pr-qtd').value) || 1);
-  var descontoP = parseFloat(document.getElementById('pr-desconto').value) || 0;
-  var freteVal = parseFloat(document.getElementById('pr-frete-rapido').value) || 0;
-  var precoFinal = descontoP > 0 ? precoUnit * (1 - descontoP / 100) : precoUnit;
-  var subtotal = precoFinal * qtd;
-  var total = subtotal + freteVal;
-  var lf = '\n';
-  var txt = '🍱 ' + cliente + lf;
+function montarTextoPedidoRapido() {
+  const m = window._pedidoRapidoModelo;
+  if (!m) return null;
+  const precoUnit = window._pedidoRapidoPreco || 0;
+  if (!precoUnit) return null;
+  const cliente = document.getElementById('pr-cliente').value.trim();
+  const qtd = Math.max(1, parseInt(document.getElementById('pr-qtd').value) || 1);
+  const descontoP = R(document.getElementById('pr-desconto').value);
+  const freteVal = R(document.getElementById('pr-frete-rapido').value);
+  const precoFinal = descontoP > 0 ? precoUnit * (1 - descontoP / 100) : precoUnit;
+  const subtotal = precoFinal * qtd;
+  const total = subtotal + freteVal;
+  const lf = '\n';
+  let txt = '';
+  if (cliente) txt += '👤 ' + cliente + lf;
+  txt += '🍱 ' + m.nome + lf;
   if (m.descricao) txt += m.descricao + lf;
   txt += lf;
   if (qtd === 1) {
-    txt += '💰 Valor: R$ ' + fmt(precoFinal);
-    if (descontoP > 0) txt += ' (com ' + descontoP + '% de desconto)';
-    txt += lf;
+    txt += '💰 Valor: R$ ' + fmt(precoFinal) + lf;
   } else {
-    if (descontoP > 0) {
-      txt += '💰 Valor unit.: R$ ' + fmt(precoUnit) + ' (desconto ' + descontoP + '%): R$ ' + fmt(precoFinal) + '/un' + lf;
-    } else {
-      txt += '💰 Valor unit.: R$ ' + fmt(precoUnit) + lf;
-    }
-    txt += '📦 Total (' + qtd + ' marmitas): R$ ' + fmt(subtotal) + lf;
+    txt += '💰 Valor unitário: R$ ' + fmt(precoFinal) + lf;
+    txt += '📦 ' + qtd + ' marmitas: R$ ' + fmt(subtotal) + lf;
   }
-  if (freteVal > 0) {
-    txt += '🚚 Frete: R$ ' + fmt(freteVal) + lf;
-    txt += '💵 Total com frete: R$ ' + fmt(total) + lf;
-  }
-  txt += lf + '✅ Pagamento via PIX - sem acréscimo' + lf;
-  txt += lf + 'Aguardando sua confirmação! 🍱❤️';
+  if (descontoP > 0) txt += '🏷️ Já com ' + descontoP + '% de desconto!' + lf;
+  if (freteVal > 0) txt += '🚚 Frete: R$ ' + fmt(freteVal) + lf;
+  if (freteVal > 0 || qtd > 1) txt += '💵 Total: R$ ' + fmt(total) + lf;
+  txt += lf + linhaPagamento() + lf;
+  txt += lf + (qtd > 1 ? 'Podemos reservar as suas? É só responder aqui que já deixamos separadas! 😊🍱' : 'Podemos reservar a sua? É só responder aqui que já deixamos separada! 😊🍱');
+  return txt;
+}
+
+function copiarPedidoRapido() {
+  const txt = montarTextoPedidoRapido();
+  if (!txt) { showToast('⚠️ Modelo sem preço definido', '#d9534f'); return; }
   if (navigator.clipboard) {
     navigator.clipboard.writeText(txt).then(function() { showToast('✅ Orçamento copiado!'); closeModal('modal-pedido-rapido'); });
   } else {
-    var ta = document.createElement('textarea');
+    const ta = document.createElement('textarea');
     ta.value = txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
     showToast('✅ Orçamento copiado!'); closeModal('modal-pedido-rapido');
   }
 }
+
+function enviarWhatsPedidoRapido() {
+  const txt = montarTextoPedidoRapido();
+  if (!txt) { showToast('⚠️ Modelo sem preço definido', '#d9534f'); return; }
+  window.open('https://wa.me/?text=' + encodeURIComponent(txt), '_blank');
+  closeModal('modal-pedido-rapido');
+}
+
 function adicionarCarrinhoPedidoRapido() {
   var m = window._pedidoRapidoModelo;
   if (!m) return;
   var precoUnit = window._pedidoRapidoPreco || 0;
   if (!precoUnit) { showToast('⚠️ Modelo sem preço definido', '#d9534f'); return; }
+  var cliente = document.getElementById('pr-cliente').value.trim();
   var qtd = Math.max(1, parseInt(document.getElementById('pr-qtd').value) || 1);
-  var descontoP = parseFloat(document.getElementById('pr-desconto').value) || 0;
+  var descontoP = R(document.getElementById('pr-desconto').value);
   var precoFinal = descontoP > 0 ? precoUnit * (1 - descontoP / 100) : precoUnit;
   var custo = custoModelo(m);
   var lucro = precoFinal - custo;
@@ -467,6 +519,7 @@ function adicionarCarrinhoPedidoRapido() {
   cart.push({
     id: uid(),
     nome: m.nome,
+    cliente: cliente,
     descricao: m.descricao || '',
     qtdMarmitas: qtd,
     custoUnit: custo,
@@ -795,7 +848,7 @@ function updateModalCalc() {
   document.getElementById('rc-lucro-unit').textContent    = 'R$ ' + fmt(r.lucro);
   document.getElementById('rc-margem-real').textContent   = fmt1(r.margemReal) + '%';
   document.getElementById('rc-custo-efetivo').textContent = 'R$ ' + fmt(r.custoEfetivo);
-  document.getElementById('rc-lucro-label').textContent   = 'Lucro / marmita';
+  document.getElementById('rc-lucro-label').textContent   = 'Você ganha / marmita';
   const _pfInput = document.getElementById('rc-preco-final-input');
   if (_pfInput && _pfInput !== document.activeElement) _pfInput.value = r.precoBase.toFixed(2);
   const _pfLabel = document.getElementById('rc-preco-sugerido-label');
@@ -849,7 +902,7 @@ function atualizarPrecoFinal(val) {
   document.getElementById('rc-preco').textContent         = 'R$ ' + fmt(preco);
   document.getElementById('rc-lucro-unit').textContent    = 'R$ ' + fmt(lucro);
   document.getElementById('rc-margem-real').textContent   = fmt1(margem) + '%';
-  document.getElementById('rc-lucro-label').textContent   = 'Lucro / marmita';
+  document.getElementById('rc-lucro-label').textContent   = 'Você ganha / marmita';
 }
 
 function copiarPreco() {
@@ -924,7 +977,7 @@ function toggleAjustes() {
 function fecharModal() {
   // Reseta estados de expansão ao fechar
   document.getElementById('cliente-fechou-section').style.display = 'none';
-  document.getElementById('btn-cliente-fechou').textContent = '✅ Cliente fechou';
+  document.getElementById('btn-cliente-fechou').textContent = '✅ Cliente confirmou';
   closeModal('modal-margens');
 }
 
@@ -1228,7 +1281,7 @@ function addToPedido(skipToast) {
   updateCartBadge();
   document.getElementById('modal-pedido-nome').value = '';
   document.getElementById('cliente-fechou-section').style.display = 'none';
-  document.getElementById('btn-cliente-fechou').textContent = '✅ Cliente fechou';
+  document.getElementById('btn-cliente-fechou').textContent = '✅ Cliente confirmou';
   closeModal('modal-margens');
 }
 
@@ -1266,7 +1319,7 @@ function cancelEditCart() {
   editingCartIdx = null;
   resetAddBtn();
   document.getElementById('cliente-fechou-section').style.display = 'none';
-  document.getElementById('btn-cliente-fechou').textContent = '✅ Cliente fechou';
+  document.getElementById('btn-cliente-fechou').textContent = '✅ Cliente confirmou';
   closeModal('modal-margens');
 }
 
@@ -1338,7 +1391,7 @@ function renderPedido() {
     <div class="cart-item">
       <div class="cart-item-top">
         <div style="flex:1;min-width:0">
-          <div class="cart-item-nome">${item.nome}</div>
+          <div class="cart-item-nome">${item.nome}</div>${item.cliente ? '<div class="cart-item-meta">👤 ' + item.cliente + '</div>' : ''}
           <div class="cart-item-meta">
             ${item.qtdMarmitas} marmita${item.qtdMarmitas > 1 ? 's' : ''}
             × R$ ${fmt(item.precoUnit)} · margem ${item.margemAlvo}%
@@ -1420,6 +1473,7 @@ function openResumoModal() {
     const total = item.precoUnit * item.qtdMarmitas;
     subtotal += total;
 
+    if (item.cliente) txt += `👤 ${item.cliente}\n`;
     txt += `🍱 ${item.nome}\n`;
     if (item.descricao) txt += `${item.descricao}\n`;
 
@@ -1441,9 +1495,9 @@ function openResumoModal() {
   }
 
   txt += `${DIV}\n\n`;
-  txt += `✅ Pagamento via PIX — sem acréscimo\n\n`;
+  txt += linhaPagamento() + '\n\n';
   txt += `Obrigada pela preferência! 🍱❤️\n`;
-  txt += `Aguardando sua confirmação para envio do link de pagamento.`;
+  txt += 'Podemos reservar seu pedido? É só responder aqui que já deixamos separado! 😊';
 
   document.getElementById('resumo-texto').textContent = txt;
   openModal('modal-resumo');
@@ -1460,6 +1514,11 @@ function copiarResumo() {
     document.body.removeChild(ta);
     showToast('✅ Texto copiado!');
   }
+}
+
+function enviarResumoWhatsApp() {
+  const txt = document.getElementById('resumo-texto').textContent;
+  window.open('https://wa.me/?text=' + encodeURIComponent(txt), '_blank');
 }
 
 // ════════════════════════════════════════════════════════════
@@ -1482,7 +1541,7 @@ function showToast(msg, bg = '#5B7B4F') {
   t.style.background = bg;
   t.classList.add('show');
   clearTimeout(_toastTimer);
-  _toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+  _toastTimer = setTimeout(() => t.classList.remove('show'), 4000);
 }
 
 // ════════════════════════════════════════════════════════════
