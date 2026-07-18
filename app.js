@@ -1462,7 +1462,7 @@ function openResumoModal() {
   if (!cart.length) { showToast('⚠️ Pedido está vazio', '#d9534f'); return; }
 
   const hoje = new Date().toLocaleDateString('pt-BR');
-  const DIV  = '─'.repeat(40);
+  const DIV  = '─'.repeat(20);
   const EMBAL = ['pote', 'rotulo', 'etiqueta', 'embalagem', 'tampa', 'saco', 'bandeja'];
 
   let txt = `🍱 ORÇAMENTO — Sabor da Vó Fátima\nData: ${hoje}\n\n${DIV}\n\n`;
