@@ -453,7 +453,7 @@
   <nav>
     <button class="active" onclick="showScreen('montar',this)">🍽️<br>Calcular</button>
     <button onclick="showScreen('ingredientes',this)">🛒<br>Ingredientes</button>
-    <button onclick="showScreen('pedido',this)" id="tab-pedido">📋<br>Pedidos</button>
+    <button onclick="showScreen('pedido',this)" id="tab-pedido">🛒<br>Carrinho</button>
     <button onclick="showScreen('salvas',this)">👥<br>Clientes</button>
   </nav>
 
@@ -526,7 +526,7 @@
 
   <!-- ═══ PEDIDOS (CARRINHO) ═══ -->
   <div id="screen-pedido" class="screen">
-    <p class="sec-title">📋 Pedido do cliente</p>
+    <p class="sec-title">🛒 Carrinho do pedido</p>
     <div id="cart-list"></div>
     <div id="cart-order-total"></div>
 
@@ -536,7 +536,12 @@
         <label style="font-weight:700;margin-bottom:6px">🚚 Frete de entrega (R$)</label>
         <input type="number" id="frete-input" inputmode="decimal" step="0.01"
                placeholder="0,00" oninput="updateFrete(this.value)" />
-        <p style="font-size:.73rem;color:#aaa;margin-top:4px">Deixe em branco para entrega sem frete</p>
+        <p style="font-size:.78rem;color:#999;margin-top:4px">Deixe em branco para entrega sem frete</p>
+      </div>
+      <div class="card" style="padding:13px 15px;margin-top:10px">
+        <label style="font-weight:700;margin-bottom:6px">🏷️ Desconto do pedido inteiro (%)</label>
+        <input type="text" inputmode="decimal" id="desconto-pedido-input" placeholder="0" oninput="updateDescontoPedido(this.value)" />
+        <p style="font-size:.78rem;color:#999;margin-top:4px">Aplica em todos os itens de uma vez. Deixe em branco para não dar desconto.</p>
       </div>
     </div>
 
@@ -870,10 +875,22 @@
 
     <button class="btn btn-success btn-full" onclick="enviarWhatsPedidoRapido()" style="margin-bottom:8px">📲 Enviar orçamento no WhatsApp</button>
     <button class="btn btn-primary btn-full" onclick="adicionarCarrinhoPedidoRapido()" style="margin-bottom:8px">🛒 Adicionar ao carrinho</button>
+    <button class="btn btn-outline btn-full" onclick="adicionarEEscolherOutro()" style="margin-bottom:8px">➕ Adicionar e escolher outro item</button>
     <button class="btn btn-outline btn-full" onclick="copiarPedidoRapido()" style="margin-bottom:10px">📋 Só copiar o texto</button>
     <div style="text-align:center">
       <button onclick="closeModal('modal-pedido-rapido');setTimeout(function(){var m=window._pedidoRapidoModelo;if(m)usarModelo(m.id);},50)" style="background:none;border:none;color:#888;font-size:.82rem;cursor:pointer;text-decoration:underline">🔧 Montar pedido personalizado</button>
     </div>
+  </div>
+</div>
+
+<!-- MODAL ESCOLHER ITEM (adicionar mais do cardápio) -->
+<div id="modal-escolher-item" class="modal-overlay">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('modal-escolher-item')">✕</button>
+    <div class="modal-title">🍱 Escolha outro item do cardápio</div>
+    <p style="font-size:.85rem;color:#666;margin:-6px 0 14px;text-align:center">Toque no prato que a cliente também quer</p>
+    <div id="escolher-item-lista"></div>
+    <button class="btn btn-outline btn-full" style="margin-top:6px;color:#888;border-color:#ddd" onclick="closeModal('modal-escolher-item')">Concluir pedido</button>
   </div>
 </div>
 
