@@ -64,6 +64,7 @@ async function loadUserData(uid) {
       cart         = d.cart     || [];
       modelos      = d.modelos  || [];
       frete        = R(d.frete) || 0;
+    descontoPedido = R(d.descontoPedido) || 0;
     } else {
       // Primeiro login — verifica se havia dados no localStorage para migrar
       const lsIngr    = tryParse(localStorage.getItem('vf_ingredientes'));
@@ -104,11 +105,13 @@ async function loadUserData(uid) {
     cart         = d.cart     || [];
     modelos      = d.modelos  || [];
     frete        = R(d.frete) || 0;
+    descontoPedido = R(d.descontoPedido) || 0;
     localStorage.setItem('vf_ingredientes', JSON.stringify(ingredientes));
     localStorage.setItem('vf_salvas',       JSON.stringify(salvas));
     localStorage.setItem('vf_cart',         JSON.stringify(cart));
     localStorage.setItem('vf_modelos',      JSON.stringify(modelos));
     localStorage.setItem('vf_frete',        String(frete));
+  localStorage.setItem('vf_descpedido',   String(descontoPedido));
     renderModelos();
     renderMontar();
     updatePriceBar();
@@ -128,11 +131,12 @@ function saveDB() {
   localStorage.setItem('vf_cart',         JSON.stringify(cart));
   localStorage.setItem('vf_modelos',      JSON.stringify(modelos));
   localStorage.setItem('vf_frete',        String(frete));
+  localStorage.setItem('vf_descpedido',   String(descontoPedido));
   // Debounce: agrupa múltiplas alterações seguidas em 1 escrita
   clearTimeout(_saveTimer);
   _saveTimer = setTimeout(() => {
     db.collection('usuarios').doc(currentUser.uid).set({
-      ingredientes, salvas, cart, modelos, frete,
+      ingredientes, salvas, cart, modelos, frete, descontoPedido,
       updatedAt: new Date().toISOString()
     }).catch(err => {
       console.error('[saveDB]', err.code, err.message);
@@ -169,6 +173,7 @@ let salvas         = [];
 let cart           = [];
 let modelos        = [];
 let frete          = 0;
+let descontoPedido = 0;
 let selection      = {};
 let editingId      = null;
 let editingCartIdx = null;
@@ -371,7 +376,7 @@ function abrirPedidoRapido(id) {
   if (priceEl) priceEl.textContent = 'R$ ' + fmt(window._pedidoRapidoPreco);
   const priceTagEl = document.getElementById('pr-preco-tag');
   if (priceTagEl) priceTagEl.textContent = m.precoVenda ? '💰 preço salvo' : 'preço sugerido (60% de lucro)';
-  document.getElementById('pr-cliente').value = '';
+  document.getElementById('pr-cliente').value = window._clientePedido || '';
   document.getElementById('pr-qtd').value = 1;
   document.getElementById('pr-desconto').value = '';
   document.getElementById('pr-frete-rapido').value = '';
@@ -500,45 +505,73 @@ function enviarWhatsPedidoRapido() {
   closeModal('modal-pedido-rapido');
 }
 
-function adicionarCarrinhoPedidoRapido() {
+function adicionarCarrinhoPedidoRapido(continuar) {
   var m = window._pedidoRapidoModelo;
   if (!m) return;
   var precoUnit = window._pedidoRapidoPreco || 0;
   if (!precoUnit) { showToast('⚠️ Modelo sem preço definido', '#d9534f'); return; }
   var cliente = document.getElementById('pr-cliente').value.trim();
+  window._clientePedido = cliente;
   var qtd = Math.max(1, parseInt(document.getElementById('pr-qtd').value) || 1);
   var descontoP = R(document.getElementById('pr-desconto').value);
   var precoFinal = descontoP > 0 ? precoUnit * (1 - descontoP / 100) : precoUnit;
   var custo = custoModelo(m);
   var lucro = precoFinal - custo;
   var margem = precoFinal > 0 ? (lucro / precoFinal) * 100 : 0;
-  var ingrs = (m.ingrs || []).map(function(i) {
-    var ing = ingredientes.find(function(x) { return x.id === i.id; });
-    return ing ? { id: i.id, nome: ing.nome, qtd: i.qtd, unidade: ing.unidade } : null;
+  var ingrs = (m.ingrs || []).map(function(it) {
+    var ing = ingredientes.find(function(x) { return x.id === it.id; });
+    return ing ? { id: it.id, nome: ing.nome, qtd: it.qtd, unidade: ing.unidade } : null;
   }).filter(Boolean);
   cart.push({
-    id: uid(),
-    nome: m.nome,
-    cliente: cliente,
-    descricao: m.descricao || '',
-    qtdMarmitas: qtd,
-    custoUnit: custo,
-    precoUnit: precoFinal,
-    lucroUnit: lucro,
-    margemReal: margem,
-    desconto: descontoP,
-    taxa: 0,
-    imposto: 0,
-    margemAlvo: 0,
-    ingrs: ingrs,
-    addedAt: new Date().toLocaleDateString('pt-BR')
+    id: uid(), nome: m.nome, cliente: cliente, descricao: m.descricao || '',
+    qtdMarmitas: qtd, custoUnit: custo, precoUnit: precoFinal, lucroUnit: lucro,
+    margemReal: margem, desconto: descontoP, taxa: 0, imposto: 0, margemAlvo: 0,
+    ingrs: ingrs, addedAt: new Date().toLocaleDateString('pt-BR')
   });
   saveDB();
   renderPedido();
   updateCartBadge();
   closeModal('modal-pedido-rapido');
-  showToast('✅ ' + m.nome + ' adicionado ao pedido!');
+  if (continuar === true) {
+    showToast('✅ Adicionado! Escolha o próximo item');
+    abrirEscolherItem();
+  } else {
+    showToast('✅ ' + m.nome + ' adicionado ao carrinho!');
+    showScreen('pedido', document.getElementById('tab-pedido'));
+  }
 }
+
+function adicionarEEscolherOutro() { adicionarCarrinhoPedidoRapido(true); }
+
+function abrirEscolherItem() {
+  const box = document.getElementById('escolher-item-lista');
+  if (!box) return;
+  if (!modelos.length) {
+    box.innerHTML = '<p style="color:#888;text-align:center;padding:14px">Nenhum item no cardápio ainda.</p>';
+  } else {
+    box.innerHTML = modelos.map(function(m) {
+      var custo = custoModelo(m);
+      var preco = m.precoVenda || calcPreco(custo, 60, 0, 0).precoBase;
+      return '<button type="button" onclick="escolherItemModelo(\'' + m.id + '\')" ' +
+        'style="width:100%;text-align:left;background:#fff;border:2px solid #eee;border-radius:12px;padding:13px 14px;margin-bottom:8px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px;font-family:inherit">' +
+        '<span style="font-weight:700;color:#5C3A21;font-size:.95rem">🍱 ' + m.nome + '</span>' +
+        '<span style="font-weight:800;color:#C1572A;white-space:nowrap">R$ ' + fmt(preco) + '</span></button>';
+    }).join('');
+  }
+  openModal('modal-escolher-item');
+}
+
+function escolherItemModelo(id) {
+  closeModal('modal-escolher-item');
+  abrirPedidoRapido(id);
+}
+
+function updateDescontoPedido(val) {
+  descontoPedido = Math.min(100, Math.max(0, R(val)));
+  saveDB();
+  updateOrderTotal();
+}
+
 function openSaveModeloModal() {
   if (custoTotal() === 0) {
     showToast('⚠️ Adicione ingredientes com quantidade', '#d9534f'); return;
@@ -1345,14 +1378,17 @@ function updateOrderTotal() {
   const totalItems    = cart.reduce((s, i) => s + i.precoUnit  * i.qtdMarmitas, 0);
   const totalLucro    = cart.reduce((s, i) => s + i.lucroUnit  * i.qtdMarmitas, 0);
   const totalMarmitas = cart.reduce((s, i) => s + i.qtdMarmitas, 0);
-  const totalComFrete = totalItems + frete;
+  const descPedidoValor = descontoPedido > 0 ? totalItems * descontoPedido / 100 : 0;
+  const totalComFrete = totalItems - descPedidoValor + frete;
+  const lucroFinal = totalLucro - descPedidoValor;
 
   totBox.innerHTML = `
   <div class="order-total">
     <div class="ot-row"><span>Total de marmitas</span><span>${totalMarmitas} un.</span></div>
-    ${frete > 0 ? `<div class="ot-row"><span>Subtotal</span><span>R$ ${fmt(totalItems)}</span></div>
-    <div class="ot-row"><span>🚚 Frete</span><span>R$ ${fmt(frete)}</span></div>` : ''}
-    <div class="ot-row ot-lucro"><span>Lucro estimado</span><span>+R$ ${fmt(totalLucro)}</span></div>
+    ${(descontoPedido > 0 || frete > 0) ? `<div class="ot-row"><span>Subtotal</span><span>R$ ${fmt(totalItems)}</span></div>` : ''}
+    ${descontoPedido > 0 ? `<div class="ot-row"><span>🏷️ Desconto ${descontoPedido}%</span><span>- R$ ${fmt(descPedidoValor)}</span></div>` : ''}
+    ${frete > 0 ? `<div class="ot-row"><span>🚚 Frete</span><span>R$ ${fmt(frete)}</span></div>` : ''}
+    <div class="ot-row ot-lucro"><span>Lucro estimado</span><span>+R$ ${fmt(lucroFinal)}</span></div>
     <div class="ot-main"><span>TOTAL</span><span>R$ ${fmt(totalComFrete)}</span></div>
   </div>`;
 }
@@ -1377,6 +1413,8 @@ function renderPedido() {
   empty.style.display = 'none'; actBox.style.display = 'block';
   if (freteSection) freteSection.style.display = 'block';
   if (freteInput && freteInput.value === '' && frete > 0) freteInput.value = frete;
+  const descPedInput = document.getElementById('desconto-pedido-input');
+  if (descPedInput && descPedInput.value === '' && descontoPedido > 0) descPedInput.value = descontoPedido;
 
   list.innerHTML = cart.map((item, idx) => {
     const totalCliente = item.precoUnit  * item.qtdMarmitas;
@@ -1427,6 +1465,10 @@ function removeCartItem(idx) {
 function limparPedido() {
   if (!confirm('Limpar todo o pedido?')) return;
   cart = [];
+  descontoPedido = 0;
+  window._clientePedido = '';
+  const dpi = document.getElementById('desconto-pedido-input'); if (dpi) dpi.value = '';
+  const fi = document.getElementById('frete-input'); if (fi) fi.value = '';
   saveDB();
   updateCartBadge();
   renderPedido();
@@ -1438,8 +1480,8 @@ function updateCartBadge() {
   const n   = cart.length;
   const old = tab.querySelector('.tab-badge');
   if (old) old.remove();
-  if (n > 0) tab.innerHTML = `📋<span class="tab-badge">${n}</span><br>Pedidos`;
-  else        tab.innerHTML = `📋<br>Pedidos`;
+  if (n > 0) tab.innerHTML = `🛒<span class="tab-badge">${n}</span><br>Carrinho`;
+  else        tab.innerHTML = `🛒<br>Carrinho`;
 }
 
 // ════════════════════════════════════════════════════════════
@@ -1484,15 +1526,16 @@ function openResumoModal() {
     txt += `\n`;
   });
 
+  const descVal = descontoPedido > 0 ? subtotal * descontoPedido / 100 : 0;
+  const totalFinal = subtotal - descVal + frete;
   txt += `${DIV}\n`;
-  if (frete > 0) {
+  if (descontoPedido > 0 || frete > 0) {
     txt += `Subtotal: R$ ${fmt(subtotal)}\n`;
-    txt += `🚚 Frete: R$ ${fmt(frete)}\n`;
+    if (descontoPedido > 0) txt += `🏷️ Desconto ${descontoPedido}%: - R$ ${fmt(descVal)}\n`;
+    if (frete > 0) txt += `🚚 Frete: R$ ${fmt(frete)}\n`;
     txt += `${DIV}\n`;
-    txt += `💵 TOTAL: R$ ${fmt(subtotal + frete)}\n`;
-  } else {
-    txt += `💵 TOTAL: R$ ${fmt(subtotal)}\n`;
   }
+  txt += `💵 TOTAL: R$ ${fmt(totalFinal)}\n`;
 
   txt += `${DIV}\n\n`;
   txt += linhaPagamento() + '\n\n';
